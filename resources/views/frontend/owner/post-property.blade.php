@@ -530,7 +530,14 @@ $swCommTypes    = $swCfg['commercial_types'] ?? ['Office','Co-working Space','Sh
           <div class="gallery-preview">
             @foreach($gallery as $img)
             <div class="gp-item {{ $loop->first ? 'main-img' : '' }}" id="gimg-{{ $img->id }}">
-              <img src="{{ asset('images/'.config('global.PROPERTY_GALLERY_IMG_PATH','property_gallery_img/').'/'.$prop->id.'/'.$img->image) }}" alt=""/>
+              @php
+                $galleryBase = config('global.PROPERTY_GALLERY_IMG_PATH','/property_gallery_img/');
+                $nestedGalleryPath = $galleryBase.$prop->id.'/'.$img->image;
+                $galleryImagePath = file_exists(public_path('images').$nestedGalleryPath)
+                  ? $nestedGalleryPath
+                  : $galleryBase.$img->image;
+              @endphp
+              <img src="{{ asset('images/'.ltrim($galleryImagePath,'/')) }}" alt=""/>
               <button type="button" class="gp-remove" onclick="deleteGalleryImg({{ $img->id }}, {{ $prop->id }})"><i class="fa-solid fa-xmark"></i></button>
             </div>
             @endforeach

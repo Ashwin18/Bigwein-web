@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\PropertyImages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class OwnerPropertyController extends Controller
@@ -15,6 +16,24 @@ class OwnerPropertyController extends Controller
     private function customer()
     {
         return session('bw_customer');
+    }
+
+    private function threeDImageColumn(): string
+    {
+        return Schema::hasColumn('propertys', 'three_d_image') ? 'three_d_image' : 'threeD_image';
+    }
+
+    private function storeGalleryImage($file, int $propertyId): string
+    {
+        $destinationPath = public_path('images') . config('global.PROPERTY_GALLERY_IMG_PATH') . $propertyId;
+        if (!is_dir($destinationPath)) {
+            mkdir($destinationPath, 0777, true);
+        }
+
+        $filename = microtime(true) . '-' . Str::random(6) . '.' . strtolower($file->getClientOriginalExtension());
+        $file->move($destinationPath, $filename);
+
+        return $filename;
     }
 
 
@@ -172,6 +191,9 @@ class OwnerPropertyController extends Controller
             'state'       => 'required|string',
             'price'       => 'required|numeric|min:1',
             'title_image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            'gallery'     => 'nullable|array|max:20',
+            'gallery.*'   => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            '3d_image'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
@@ -231,6 +253,11 @@ class OwnerPropertyController extends Controller
                 'boundary_wall' => $request->boundary_wall,
             ])),
         ];
+
+        $threeDImageColumn = $this->threeDImageColumn();
+        $propData[$threeDImageColumn] = $request->hasFile('3d_image')
+            ? store_image($request->file('3d_image'), '3D_IMG_PATH')
+            : '';
 
         // Main image
         if ($request->hasFile('title_image')) {
@@ -294,7 +321,7 @@ class OwnerPropertyController extends Controller
         // Gallery images (multiple)
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
-                $filename = store_image($img, 'PROPERTY_GALLERY_IMG_PATH');
+                $filename = $this->storeGalleryImage($img, $prop->id);
                 PropertyImages::create([
                     'propertys_id' => $prop->id,
                     'image'        => $filename,
@@ -364,6 +391,9 @@ class OwnerPropertyController extends Controller
             'state'       => 'required|string',
             'price'       => 'required|numeric|min:1',
             'title_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'gallery'     => 'nullable|array|max:20',
+            'gallery.*'   => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            '3d_image'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
@@ -403,6 +433,9 @@ class OwnerPropertyController extends Controller
 
         if ($request->hasFile('title_image')) {
             $data['title_image'] = store_image($request->file('title_image'), 'PROPERTY_TITLE_IMG_PATH');
+        }
+        if ($request->hasFile('3d_image')) {
+            $data[$this->threeDImageColumn()] = store_image($request->file('3d_image'), '3D_IMG_PATH');
         }
 
         $prop->update($data);
@@ -453,7 +486,7 @@ class OwnerPropertyController extends Controller
         // New gallery images
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
-                $filename = store_image($img, 'PROPERTY_GALLERY_IMG_PATH');
+                $filename = $this->storeGalleryImage($img, $prop->id);
                 PropertyImages::create(['propertys_id' => $prop->id, 'image' => $filename]);
             }
         }
@@ -484,15 +517,15 @@ class OwnerPropertyController extends Controller
         $cust = $this->customer();
         $prop = Property::where('id', $id)->where('added_by', $cust['id'])->firstOrFail();
 
-        $request->validate(['image' => 'required|image|max:5120']);
-        $filename = store_image($request->file('image'), 'PROPERTY_GALLERY_IMG_PATH');
+        $request->validate(['image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120']);
+        $filename = $this->storeGalleryImage($request->file('image'), $prop->id);
 
         $img = PropertyImages::create(['propertys_id' => $prop->id, 'image' => $filename]);
 
         return response()->json([
             'success'  => true,
             'id'       => $img->id,
-            'image_url'=> asset('images/' . config('global.PROPERTY_GALLERY_IMG_PATH') . $filename),
+            'image_url'=> asset('images/' . trim(config('global.PROPERTY_GALLERY_IMG_PATH'), '/') . '/' . $prop->id . '/' . $filename),
         ]);
     }
 

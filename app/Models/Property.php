@@ -46,6 +46,7 @@ class Property extends Model
         'latitude',
         'longitude',
         'three_d_image',
+        'threeD_image',
         'is_premium'
     ];
     protected $hidden = [
@@ -223,7 +224,11 @@ class Property extends Model
         foreach ($data as $item) {
             if ($item['image'] != '') {
                 $item['image'] = $item['image'];
-                $item['image_url'] = ($item['image'] != '') ? url('') . config('global.IMG_PATH') . config('global.PROPERTY_GALLERY_IMG_PATH') . $this->id . "/" . $item['image'] : '';
+                $galleryPath = config('global.PROPERTY_GALLERY_IMG_PATH');
+                $nestedPath = $galleryPath . $this->id . "/" . $item['image'];
+                $legacyPath = $galleryPath . $item['image'];
+                $relativePath = file_exists(public_path('images') . $nestedPath) ? $nestedPath : $legacyPath;
+                $item['image_url'] = url('') . config('global.IMG_PATH') . $relativePath;
             }
         }
         return $data;
