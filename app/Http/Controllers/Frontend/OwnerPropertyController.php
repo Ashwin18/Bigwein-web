@@ -37,14 +37,14 @@ class OwnerPropertyController extends Controller
         $profile = $this->categoryProfileKey($request->category_id);
 
         $data = [
-            'sub_type'        => $categoryData['sub_type'],
+            'sub_type'        => $request->sub_type,
             'commercial_type' => $profile === 'commercial' ? $request->sub_type : null,
-            'carpet_area'     => $categoryData['carpet_area'],
-            'floor_number'    => $categoryData['floor_number'],
-            'total_floors'    => $categoryData['total_floors'],
-            'age_of_building' => $categoryData['age_of_building'],
-            'furnishing'      => $categoryData['furnishing'],
-            'water_supply'    => $categoryData['water_supply'],
+            'carpet_area'     => $request->carpet_area,
+            'floor_number'    => $request->floor_number,
+            'total_floors'    => $request->total_floors,
+            'age_of_building' => $request->age_of_building,
+            'furnishing'      => $request->furnishing,
+            'water_supply'    => $request->water_supply,
         ];
 
         if ($profile === 'plot') {
