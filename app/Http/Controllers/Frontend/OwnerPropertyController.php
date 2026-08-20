@@ -20,16 +20,69 @@ class OwnerPropertyController extends Controller
 
     private function categoryProfileKey($categoryId): string
     {
+        if (!is_scalar($categoryId)) return 'generic';
+
         $name = strtolower((string) DB::table('categories')->where('id', $categoryId)->value('category'));
 
-        if (str_contains($name, 'commercial') || str_contains($name, 'office') || str_contains($name, 'warehouse')) return 'commercial';
+        if (str_contains($name, 'commercial') || str_contains($name, 'office') || str_contains($name, 'shop') || str_contains($name, 'showroom') || str_contains($name, 'warehouse') || str_contains($name, 'industrial') || str_contains($name, 'factory')) return 'commercial';
         if (str_contains($name, 'plot') || str_contains($name, 'land') || str_contains($name, 'agricultural')) return 'plot';
         if (str_contains($name, 'pg') || str_contains($name, 'hostel') || str_contains($name, 'co-living')) return 'pg';
         if (str_contains($name, 'villa')) return 'villa';
         if (str_contains($name, 'town')) return 'townhouse';
         if (str_contains($name, 'apartment') || str_contains($name, 'flat')) return 'apartment';
+        if (str_contains($name, 'house') || str_contains($name, 'bungalow') || str_contains($name, 'banglow') || str_contains($name, 'penthouse') || str_contains($name, 'condo')) return 'residential';
 
         return 'generic';
+    }
+
+    private function categoryValidationRules(string $profile, $parameters): array
+    {
+        $rules = [
+            'sub_type'        => $profile === 'commercial' ? 'required|string|max:100' : 'nullable|string|max:100',
+            'commercial_type' => 'nullable|string|max:100',
+        ];
+
+        if ($profile !== 'plot') {
+            $rules += [
+                'carpet_area'     => 'nullable|numeric|min:0',
+                'floor_number'    => 'nullable|integer|min:0',
+                'total_floors'    => 'nullable|integer|min:0',
+                'age_of_building' => 'nullable|string|max:100',
+                'furnishing'      => 'nullable|string|max:100',
+            ];
+        }
+
+        if (in_array($profile, ['villa', 'townhouse', 'apartment', 'residential'], true)) {
+            foreach ($parameters as $parameter) {
+                $name = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $parameter->name));
+                if (str_contains($name, 'bedroom') || str_contains($name, 'bathroom') || str_contains($name, 'bhk')) {
+                    $rules['par_' . $parameter->id] = 'nullable|integer|min:0|max:100';
+                }
+            }
+        }
+
+        return $rules;
+    }
+
+    private function categoryAllowsParameter(string $profile, $parameter): bool
+    {
+        $name = preg_replace('/[^a-z0-9]+/', '', strtolower((string) $parameter->name));
+
+        if ($profile === 'plot') {
+            foreach (['bedroom', 'bathroom', 'bhk', 'balcon', 'kitchen', 'floor', 'furnish', 'ageofbuilding'] as $blocked) {
+                if (str_contains($name, $blocked)) return false;
+            }
+        }
+
+        if ($profile === 'commercial') {
+            foreach (['bedroom', 'bhk', 'balcon'] as $blocked) {
+                if (str_contains($name, $blocked)) return false;
+            }
+        }
+
+        if ($profile === 'pg' && str_contains($name, 'bhk')) return false;
+
+        return true;
     }
 
     private function sanitizedCategoryData(Request $request): array
@@ -106,7 +159,10 @@ class OwnerPropertyController extends Controller
             return redirect('/owner/login')->with('error', 'Please login to continue.');
         }
 
-        $request->validate([
+        $categoryProfile = $this->categoryProfileKey($request->category_id);
+        $parameters = DB::table('parameters')->get();
+
+        $request->validate(array_merge([
             'title'       => 'required|string|max:255',
             'description' => 'required|string|min:20',
             'category_id' => 'required|integer',
@@ -120,7 +176,7 @@ class OwnerPropertyController extends Controller
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
             'unit_number' => 'nullable|string|max:80',
-        ]);
+        ], $this->categoryValidationRules($categoryProfile, $parameters)));
 
         $slug = Str::slug($request->title) . '-' . Str::random(6);
 
@@ -210,10 +266,9 @@ class OwnerPropertyController extends Controller
         }
 
         // Save parameters (bedrooms, bathrooms etc)
-        $parameters = DB::table('parameters')->get();
         foreach ($parameters as $param) {
             $fieldName = 'par_' . $param->id;
-            if ($request->filled($fieldName)) {
+            if ($this->categoryAllowsParameter($categoryProfile, $param) && $request->filled($fieldName)) {
                 $ap = new AssignParameters();
                 $ap->modal()->associate($prop);
                 $ap->property_id   = $prop->id;
@@ -304,7 +359,10 @@ class OwnerPropertyController extends Controller
         }
         $prop = Property::where('id', $id)->where('added_by', $custId)->firstOrFail();
 
-        $request->validate([
+        $categoryProfile = $this->categoryProfileKey($request->category_id);
+        $parameters = DB::table('parameters')->get();
+
+        $request->validate(array_merge([
             'title'       => 'required|string|max:255',
             'description' => 'required|string|min:20',
             'category_id' => 'required|integer',
@@ -318,7 +376,7 @@ class OwnerPropertyController extends Controller
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
             'unit_number' => 'nullable|string|max:80',
-]);
+        ], $this->categoryValidationRules($categoryProfile, $parameters)));
 
         [$categoryProfile, $categoryData] = $this->sanitizedCategoryData($request);
 
@@ -374,10 +432,9 @@ class OwnerPropertyController extends Controller
 
         // Refresh parameters
         DB::table('assign_parameters')->where('property_id', $id)->delete();
-        $parameters = DB::table('parameters')->get();
         foreach ($parameters as $param) {
             $fieldName = 'par_' . $param->id;
-            if ($request->filled($fieldName)) {
+            if ($this->categoryAllowsParameter($categoryProfile, $param) && $request->filled($fieldName)) {
                 $ap = new AssignParameters();
                 $ap->modal()->associate($prop);
                 $ap->property_id  = $prop->id;
