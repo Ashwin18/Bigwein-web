@@ -85,6 +85,9 @@ class OwnerPropertyController extends Controller
     public function create(Request $request)
     {
         $cust       = $this->customer();
+        if (empty($cust['id'])) {
+            return redirect('/owner/login')->with('error', 'Please login to continue.');
+        }
         $categories = DB::table('categories')->where('status', 1)->get();
         $parameters = DB::table('parameters')->get();
         $facilities = DB::table('outdoor_facilities')->get();
@@ -98,7 +101,10 @@ class OwnerPropertyController extends Controller
     public function store(Request $request)
     {
         $cust   = $this->customer();
-        $custId = $cust['id'];
+        $custId = $cust['id'] ?? null;
+        if (!$custId) {
+            return redirect('/owner/login')->with('error', 'Please login to continue.');
+        }
 
         $request->validate([
             'title'       => 'required|string|max:255',
@@ -109,6 +115,7 @@ class OwnerPropertyController extends Controller
             'city'        => 'required|string',
             'state'       => 'required|string',
             'price'       => 'required|numeric|min:1',
+            'title_image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
             'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
@@ -125,7 +132,7 @@ class OwnerPropertyController extends Controller
             'description'     => $request->description,
             'category_id'     => $request->category_id,
             'propery_type'    => $request->propery_type,
-            'sub_type'        => $request->sub_type,
+            'sub_type'        => $categoryData['sub_type'],
             'commercial_type' => $categoryData['commercial_type'],
             'listing_type'    => $request->listing_mode === 'business' ? 'business' : 'property',
             'business_type'   => $request->listing_mode === 'business' ? $request->commercial_type : null,
@@ -135,17 +142,17 @@ class OwnerPropertyController extends Controller
             'state'           => $request->state,
             'country'         => $request->country ?? 'India',
             'pincode'         => $request->pincode,
-            'latitude'        => $request->latitude,
-            'longitude'       => $request->longitude,
+            'latitude'        => (string) ($request->latitude ?? ''),
+            'longitude'       => (string) ($request->longitude ?? ''),
             'price'           => $request->price,
             'total_area'      => $request->total_area,
-            'carpet_area'     => $request->carpet_area,
-            'floor_number'    => $request->floor_number,
-            'total_floors'    => $request->total_floors,
-            'age_of_building' => $request->age_of_building,
+            'carpet_area'     => $categoryData['carpet_area'],
+            'floor_number'    => $categoryData['floor_number'],
+            'total_floors'    => $categoryData['total_floors'],
+            'age_of_building' => $categoryData['age_of_building'],
             'facing'          => $request->facing,
-            'furnishing'      => $request->furnishing,
-            'water_supply'    => $request->water_supply,
+            'furnishing'      => $categoryData['furnishing'],
+            'water_supply'    => $categoryData['water_supply'],
             'prop_status'     => $request->prop_status,
             'maintenance'     => $request->maintenance,
             'security_deposit'=> $request->security_deposit,
@@ -256,7 +263,11 @@ class OwnerPropertyController extends Controller
     public function edit($id)
     {
         $cust = $this->customer();
-        $prop = Property::where('id', $id)->where('added_by', $cust['id'])->firstOrFail();
+        $custId = $cust['id'] ?? null;
+        if (!$custId) {
+            return redirect('/owner/login')->with('error', 'Please login to continue.');
+        }
+        $prop = Property::where('id', $id)->where('added_by', $custId)->firstOrFail();
 
         $categories = DB::table('categories')->where('status', 1)->get();
         $parameters = DB::table('parameters')->get();
@@ -273,10 +284,13 @@ class OwnerPropertyController extends Controller
         // Gallery
         $gallery = PropertyImages::where('propertys_id', $id)->get();
         [$builderProjects,$builderProjectUnits] = $this->builderProjectData($cust);
+        $isEdit = true;
+        $formUrl = url('/owner/property/' . $id . '/update');
 
         return view('frontend.owner.post-property', compact(
             'cust', 'prop', 'categories', 'parameters', 'facilities',
-            'savedParams', 'savedFacilities', 'gallery', 'builderProjects', 'builderProjectUnits'
+            'savedParams', 'savedFacilities', 'gallery', 'builderProjects', 'builderProjectUnits',
+            'isEdit', 'formUrl'
         ));
     }
 
@@ -284,7 +298,11 @@ class OwnerPropertyController extends Controller
     public function update(Request $request, $id)
     {
         $cust = $this->customer();
-        $prop = Property::where('id', $id)->where('added_by', $cust['id'])->firstOrFail();
+        $custId = $cust['id'] ?? null;
+        if (!$custId) {
+            return redirect('/owner/login')->with('error', 'Please login to continue.');
+        }
+        $prop = Property::where('id', $id)->where('added_by', $custId)->firstOrFail();
 
         $request->validate([
             'title'       => 'required|string|max:255',
@@ -295,7 +313,8 @@ class OwnerPropertyController extends Controller
             'city'        => 'required|string',
             'state'       => 'required|string',
             'price'       => 'required|numeric|min:1',
-                    'project_id'  => 'nullable|integer',
+            'title_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
             'unit_number' => 'nullable|string|max:80',
@@ -317,6 +336,8 @@ class OwnerPropertyController extends Controller
         $data['age_of_building'] = $categoryData['age_of_building'];
         $data['furnishing'] = $categoryData['furnishing'];
         $data['water_supply'] = $categoryData['water_supply'];
+        $data['latitude'] = (string) ($request->latitude ?? '');
+        $data['longitude'] = (string) ($request->longitude ?? '');
         $data['video_link'] = $request->video_link ?? '';
 
         $data['client_address']  = $request->address;
