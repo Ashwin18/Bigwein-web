@@ -8,8 +8,10 @@ use App\Models\Property;
 use App\Models\PropertyImages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 class OwnerPropertyController extends Controller
 {
@@ -34,6 +36,25 @@ class OwnerPropertyController extends Controller
         $file->move($destinationPath, $filename);
 
         return $filename;
+    }
+
+    private function uploadedImagePath(string $configKey, string $filename, ?int $propertyId = null): string
+    {
+        $path = public_path('images') . config('global.' . $configKey);
+        if ($propertyId !== null) {
+            $path .= $propertyId . '/';
+        }
+
+        return $path . $filename;
+    }
+
+    private function cleanupUploadedFiles(array $paths): void
+    {
+        foreach (array_unique($paths) as $path) {
+            if (is_string($path) && $path !== '' && is_file($path)) {
+                @unlink($path);
+            }
+        }
     }
 
 
@@ -200,6 +221,9 @@ class OwnerPropertyController extends Controller
             'unit_number' => 'nullable|string|max:80',
         ], $this->categoryValidationRules($categoryProfile, $parameters)));
 
+        $uploadedFiles = [];
+        try {
+        DB::beginTransaction();
         $slug = Str::slug($request->title) . '-' . Str::random(6);
 
         [$categoryProfile, $categoryData] = $this->sanitizedCategoryData($request);
@@ -255,13 +279,16 @@ class OwnerPropertyController extends Controller
         ];
 
         $threeDImageColumn = $this->threeDImageColumn();
-        $propData[$threeDImageColumn] = $request->hasFile('3d_image')
-            ? store_image($request->file('3d_image'), '3D_IMG_PATH')
-            : '';
+        $propData[$threeDImageColumn] = '';
+        if ($request->hasFile('3d_image')) {
+            $propData[$threeDImageColumn] = store_image($request->file('3d_image'), '3D_IMG_PATH');
+            $uploadedFiles[] = $this->uploadedImagePath('3D_IMG_PATH', $propData[$threeDImageColumn]);
+        }
 
         // Main image
         if ($request->hasFile('title_image')) {
             $propData['title_image'] = store_image($request->file('title_image'), 'PROPERTY_TITLE_IMG_PATH');
+            $uploadedFiles[] = $this->uploadedImagePath('PROPERTY_TITLE_IMG_PATH', $propData['title_image']);
         }
 
         $prop = Property::create($propData);
@@ -322,6 +349,7 @@ class OwnerPropertyController extends Controller
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
                 $filename = $this->storeGalleryImage($img, $prop->id);
+                $uploadedFiles[] = $this->uploadedImagePath('PROPERTY_GALLERY_IMG_PATH', $filename, $prop->id);
                 PropertyImages::create([
                     'propertys_id' => $prop->id,
                     'image'        => $filename,
@@ -329,8 +357,24 @@ class OwnerPropertyController extends Controller
             }
         }
 
+        DB::commit();
+
         return redirect('/owner/my-properties')
             ->with('success', 'Property submitted! Our team will review and publish within 24 hours.');
+        } catch (Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            $this->cleanupUploadedFiles($uploadedFiles);
+            Log::error('Owner property creation failed', [
+                'owner_id' => $custId,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Property could not be submitted. Please try again.');
+        }
     }
 
     /** Show edit form */
@@ -400,6 +444,9 @@ class OwnerPropertyController extends Controller
             'unit_number' => 'nullable|string|max:80',
         ], $this->categoryValidationRules($categoryProfile, $parameters)));
 
+        $uploadedFiles = [];
+        try {
+        DB::beginTransaction();
         [$categoryProfile, $categoryData] = $this->sanitizedCategoryData($request);
 
         $data = $request->only([
@@ -433,9 +480,11 @@ class OwnerPropertyController extends Controller
 
         if ($request->hasFile('title_image')) {
             $data['title_image'] = store_image($request->file('title_image'), 'PROPERTY_TITLE_IMG_PATH');
+            $uploadedFiles[] = $this->uploadedImagePath('PROPERTY_TITLE_IMG_PATH', $data['title_image']);
         }
         if ($request->hasFile('3d_image')) {
             $data[$this->threeDImageColumn()] = store_image($request->file('3d_image'), '3D_IMG_PATH');
+            $uploadedFiles[] = $this->uploadedImagePath('3D_IMG_PATH', $data[$this->threeDImageColumn()]);
         }
 
         $prop->update($data);
@@ -487,11 +536,29 @@ class OwnerPropertyController extends Controller
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
                 $filename = $this->storeGalleryImage($img, $prop->id);
+                $uploadedFiles[] = $this->uploadedImagePath('PROPERTY_GALLERY_IMG_PATH', $filename, $prop->id);
                 PropertyImages::create(['propertys_id' => $prop->id, 'image' => $filename]);
             }
         }
 
+        DB::commit();
+
         return redirect('/owner/my-properties')->with('success', 'Property updated successfully!');
+        } catch (Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            $this->cleanupUploadedFiles($uploadedFiles);
+            Log::error('Owner property update failed', [
+                'owner_id' => $custId,
+                'property_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Property could not be updated. Please try again.');
+        }
     }
 
     /** Delete property */
