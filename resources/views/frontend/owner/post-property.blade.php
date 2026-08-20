@@ -13,7 +13,14 @@ $savedParams     = $savedParams     ?? collect();
 $savedFacilities = $savedFacilities ?? collect();
 $savedP          = $savedP          ?? collect();
 $savedF          = $savedF          ?? collect();
-$amenityList     = $amenityList     ?? ["Swimming Pool","Gym / Fitness","Car Parking","Lift / Elevator","Power Backup","24/7 Security","Garden / Park","High-Speed WiFi","Clubhouse","CCTV Surveillance","Intercom","Water Supply 24/7","Visitor Parking","Kids Play Area","Temple / Prayer Hall"];
+$amenities       = $amenities       ?? collect();
+$selectedAmenityIds = $selectedAmenityIds ?? collect();
+$amenitySelection = old('amenities_present') !== null
+    ? old('amenities', [])
+    : ($isEdit ? $selectedAmenityIds->all() : []);
+$checkedAmenityIds = collect($amenitySelection)
+    ->map(fn ($id) => (int) $id)
+    ->all();
 $bedroomParamId  = $bedroomParamId  ?? 2;
 $propId          = $propId          ?? null;
 $ownerProperty   = $ownerProperty   ?? null;
@@ -458,11 +465,14 @@ $swCommTypes    = $swCfg['commercial_types'] ?? ['Office','Co-working Space','Sh
       <div class="form-card">
         <div class="form-card-title"><i class="fa-solid fa-star"></i> Property Amenities</div>
         <div class="amenity-grid">
-          @foreach($amenityList as $amenity)
-          <label class="amenity-chip js-category-amenity">
-            <input type="checkbox" name="amenities[]" value="{{ $amenity }}" onchange="this.closest('.amenity-chip').classList.toggle('checked',this.checked)"/>
+          <input type="hidden" name="amenities_present" value="1">
+          @foreach($amenities as $amenity)
+          <label class="amenity-chip js-category-amenity {{ in_array((int) $amenity->id, $checkedAmenityIds, true) ? 'checked' : '' }}">
+            <input type="checkbox" name="amenities[]" value="{{ $amenity->id }}"
+              {{ in_array((int) $amenity->id, $checkedAmenityIds, true) ? 'checked' : '' }}
+              onchange="this.closest('.amenity-chip').classList.toggle('checked',this.checked)"/>
             <i class="fa-solid fa-check-circle" style="color:var(--red);font-size:12px;"></i>
-            {{ $amenity }}
+            {{ $amenity->name }}
           </label>
           @endforeach
         </div>

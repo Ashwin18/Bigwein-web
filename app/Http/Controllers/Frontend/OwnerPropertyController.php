@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class OwnerPropertyController extends Controller
@@ -184,10 +185,15 @@ class OwnerPropertyController extends Controller
         $categories = DB::table('categories')->where('status', 1)->get();
         $parameters = DB::table('parameters')->get();
         $facilities = DB::table('outdoor_facilities')->get();
+        $amenities = DB::table('property_amenities')
+            ->where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
         $propertyGroup = $request->query('property_group', '');
         $listingMode = $request->query('listing_mode', '');
         [$builderProjects,$builderProjectUnits] = $this->builderProjectData($cust);
-        return view('frontend.owner.post-property', compact('cust', 'categories', 'parameters', 'facilities', 'propertyGroup', 'listingMode', 'builderProjects', 'builderProjectUnits'));
+        return view('frontend.owner.post-property', compact('cust', 'categories', 'parameters', 'facilities', 'amenities', 'propertyGroup', 'listingMode', 'builderProjects', 'builderProjectUnits'));
     }
 
     /** Store new property */
@@ -215,6 +221,8 @@ class OwnerPropertyController extends Controller
             'gallery'     => 'nullable|array|max:20',
             'gallery.*'   => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             '3d_image'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'amenities'   => 'nullable|array',
+            'amenities.*' => ['integer', Rule::exists('property_amenities', 'id')->where(fn ($query) => $query->where('is_active', 1))],
             'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
@@ -345,6 +353,22 @@ class OwnerPropertyController extends Controller
             }
         }
 
+        $amenityIds = collect($request->input('amenities', []))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+        if ($amenityIds->isNotEmpty()) {
+            $now = now();
+            DB::table('property_amenity_assignments')->insert(
+                $amenityIds->map(fn ($amenityId) => [
+                    'property_id' => $prop->id,
+                    'amenity_id' => $amenityId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->all()
+            );
+        }
+
         // Gallery images (multiple)
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
@@ -390,6 +414,14 @@ class OwnerPropertyController extends Controller
         $categories = DB::table('categories')->where('status', 1)->get();
         $parameters = DB::table('parameters')->get();
         $facilities = DB::table('outdoor_facilities')->get();
+        $amenities = DB::table('property_amenities')
+            ->where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $selectedAmenityIds = DB::table('property_amenity_assignments')
+            ->where('property_id', $id)
+            ->pluck('amenity_id');
 
         // Saved parameters
         $savedParams = DB::table('assign_parameters')
@@ -408,7 +440,7 @@ class OwnerPropertyController extends Controller
         return view('frontend.owner.post-property', compact(
             'cust', 'prop', 'categories', 'parameters', 'facilities',
             'savedParams', 'savedFacilities', 'gallery', 'builderProjects', 'builderProjectUnits',
-            'isEdit', 'formUrl'
+            'isEdit', 'formUrl', 'amenities', 'selectedAmenityIds'
         ));
     }
 
@@ -438,6 +470,8 @@ class OwnerPropertyController extends Controller
             'gallery'     => 'nullable|array|max:20',
             'gallery.*'   => 'image|mimes:jpg,jpeg,png,webp|max:5120',
             '3d_image'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'amenities'   => 'nullable|array',
+            'amenities.*' => ['integer', Rule::exists('property_amenities', 'id')->where(fn ($query) => $query->where('is_active', 1))],
             'project_id'  => 'nullable|integer',
             'project_unit_id' => 'nullable|integer',
             'tower'       => 'nullable|string|max:80',
@@ -530,6 +564,23 @@ class OwnerPropertyController extends Controller
                     'distance'    => $request->input($fieldName),
                 ]);
             }
+        }
+
+        DB::table('property_amenity_assignments')->where('property_id', $prop->id)->delete();
+        $amenityIds = collect($request->input('amenities', []))
+            ->map(fn ($amenityId) => (int) $amenityId)
+            ->unique()
+            ->values();
+        if ($amenityIds->isNotEmpty()) {
+            $now = now();
+            DB::table('property_amenity_assignments')->insert(
+                $amenityIds->map(fn ($amenityId) => [
+                    'property_id' => $prop->id,
+                    'amenity_id' => $amenityId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->all()
+            );
         }
 
         // New gallery images
