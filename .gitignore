@@ -19,3 +19,4 @@ private_key.pem
 npm-debug.log
 yarn-error.log
 bw_owner_migration.sql
+/storage/debugbar/
