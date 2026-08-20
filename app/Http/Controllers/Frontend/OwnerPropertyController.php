@@ -291,14 +291,6 @@ class OwnerPropertyController extends Controller
             }
         }
 
-        // Amenity checkboxes saved as parameter value
-        if ($request->filled('amenities')) {
-            DB::table('property_amenities')->insert([
-                'property_id' => $prop->id,
-                'amenities'   => implode(',', (array) $request->amenities),
-            ]);
-        }
-
         // Gallery images (multiple)
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $img) {
