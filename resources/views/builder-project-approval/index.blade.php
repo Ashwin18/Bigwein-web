@@ -1,0 +1,10 @@
+@extends('layouts.main')
+@section('title','Builder Project Approvals')
+@section('page-title')<div class="page-title"><h4><i class="bi bi-buildings" style="color:#E5343A"></i> Builder Project Approvals</h4><div style="font-size:11px;color:#94a3b8">Review projects submitted by verified Builders / Developers.</div></div>@endsection
+@section('content')
+<div style="padding:16px 20px 40px">
+@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px">@foreach(['pending'=>'Pending','approved'=>'Approved','changes_requested'=>'Changes Requested','rejected'=>'Rejected','all'=>'All'] as $k=>$label)<a class="btn btn-sm {{ $status===$k?'btn-danger':'btn-light' }}" href="{{ url('/builder-project-approvals?status='.$k) }}">{{ $label }} @if(isset($counts[$k]))({{ $counts[$k] }})@endif</a>@endforeach</div>
+<form method="GET" style="display:flex;gap:8px;margin-bottom:13px"><input type="hidden" name="status" value="{{ $status }}"><input class="form-control" name="search" value="{{ request('search') }}" placeholder="Search project, city or builder"><button class="btn btn-dark">Search</button></form>
+<div style="display:grid;gap:10px">@forelse($rows as $p)<div class="card p-3"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><strong>{{ $p->title }}</strong><div class="text-muted small">{{ $p->company_name ?: $p->owner_name }} · {{ $p->city }}, {{ $p->state }} · RERA: {{ $p->rera_number ?: '—' }}</div><div class="small mt-1">Status: {{ ucwords(str_replace('_',' ',$p->request_status)) }} · Active: {{ $p->status?'Yes':'No' }}</div></div><a class="btn btn-sm btn-danger" href="{{ url('/builder-project-approvals/'.$p->id) }}">Review</a></div></div>@empty<div class="card p-5 text-center text-muted">No Builder projects found in this queue.</div>@endforelse</div><div class="mt-3">{{ $rows->links() }}</div></div>
+@endsection

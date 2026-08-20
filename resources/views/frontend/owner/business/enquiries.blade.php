@@ -1,0 +1,3 @@
+@extends('frontend.owner.layouts.app')
+@section('title','Business Enquiries') @section('page-title','Business Enquiries') @section('page-bread','Buyer interest')
+@section('content')<div style="display:grid;gap:10px">@forelse($rows as $e)<div style="background:#fff;border:1px solid #e7ebf1;border-radius:14px;padding:15px"><strong>{{ $e->business_title }}</strong><div>{{ $e->name }} · {{ $e->mobile }}</div><small>{{ $e->buyer_type }} · {{ $e->investment_budget }}</small><p>{{ $e->message }}</p></div>@empty<div style="background:#fff;padding:45px;text-align:center">No business enquiries yet.</div>@endforelse</div>{{ $rows->links() }}@endsection

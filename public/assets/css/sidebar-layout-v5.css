@@ -1,0 +1,82 @@
+/* BigWein V5 — desktop sidebar/content synchronization
+   Loaded after sidebar-responsive.css + admin-redesign.css so this wins. */
+
+@media (min-width: 768px) {
+    #sidebar {
+        width: 270px !important;
+        min-width: 270px !important;
+        flex: 0 0 270px !important;
+        transition: width .28s ease, min-width .28s ease, flex-basis .28s ease !important;
+    }
+
+    /* Sidebar open */
+    #sidebar.active ~ #main.layout-navbar {
+        margin-left: 270px !important;
+        width: calc(100% - 270px) !important;
+        max-width: none !important;
+        transition: margin-left .28s ease, width .28s ease !important;
+    }
+
+    /* Sidebar closed: remove BOTH the visual sidebar and its reserved layout space. */
+    #sidebar:not(.active) {
+        width: 0 !important;
+        min-width: 0 !important;
+        flex: 0 0 0 !important;
+        overflow: visible !important;
+    }
+
+    #sidebar:not(.active) ~ #main.layout-navbar {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Guard against older JS/body-class rules from previous patches. */
+    body.bw-sidebar-collapsed #main.layout-navbar,
+    body:has(#sidebar:not(.active)) #main.layout-navbar {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Make the dashboard itself use the available workspace rather than a stale fixed width. */
+    #main-content,
+    #main-content > .page-heading,
+    #main-content > .container,
+    #main-content > .container-fluid {
+        max-width: none !important;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    #sidebar {
+        width: 250px !important;
+        min-width: 250px !important;
+        flex-basis: 250px !important;
+    }
+
+    #sidebar.active ~ #main.layout-navbar {
+        margin-left: 250px !important;
+        width: calc(100% - 250px) !important;
+    }
+
+    #sidebar:not(.active) {
+        width: 0 !important;
+        min-width: 0 !important;
+        flex-basis: 0 !important;
+    }
+
+    #sidebar:not(.active) ~ #main.layout-navbar {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #main.layout-navbar,
+    #sidebar.active ~ #main.layout-navbar,
+    #sidebar:not(.active) ~ #main.layout-navbar {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
