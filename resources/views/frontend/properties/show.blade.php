@@ -208,7 +208,7 @@
       </div>
       @endif
 
-      @if($params->count())
+@if($params->count() || $amenities->count())
       <div class="detail-box feature-amenity-box">
         <div class="section-title-row">
           <div>
@@ -217,7 +217,13 @@
           </div>
         </div>
 
-        <div class="amenities-grid-v2">
+      <div class="amenities-grid-v2">
+        @foreach($amenities as $amenity)
+          <div class="amenity-v2">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ $amenity->name }}</span>
+          </div>
+        @endforeach
           @foreach($params as $param)
             @php
               $paramName = $param['translated_name'] ?? $param['name'] ?? '';

@@ -588,7 +588,17 @@ class FrontendController extends Controller
         $s     = self::settings(['currency_symbol','web_logo','company_name']);
 
         $siteCfg = \App\Http\Controllers\SiteSettingsController::load();
+        $amenities = DB::table('property_amenity_assignments as paa')
+            ->join('property_amenities as pa', 'pa.id', '=', 'paa.amenity_id')
+            ->where('paa.property_id', $prop->id)
+            ->where('pa.is_active', 1)
+            ->orderBy('pa.sort_order')
+            ->orderBy('pa.name')
+            ->select('pa.id', 'pa.name')
+            ->get();
+
         return view('frontend.properties.show', compact(
+            'amenities',
             'prop','owner','gallery','parameters','facilities',
             'category','similar','isFav','s','customer','hasEnquired'
         ));
