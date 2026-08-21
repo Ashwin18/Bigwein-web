@@ -221,6 +221,18 @@
             }
             var compactFields = ['review_queue'];
             var compactApplied = false;
+            function normalizeProjectReviewRows() {
+                $('#table_list tbody tr').each(function () {
+                    var $row = $(this);
+                    var $cells = $row.children('td');
+                    var $cardCell = $cells.filter(function () { return $(this).find('.bw-queue-card').length > 0; }).first();
+                    if (!$cardCell.length) return;
+                    $cells.not($cardCell).addClass('bw-legacy-review-cell').attr('aria-hidden', 'true').hide();
+                    $cardCell.addClass('bw-queue-card-cell').attr('colspan', Math.max($cells.length, 1)).removeAttr('width').css({display:'table-cell',width:'100%',maxWidth:'none'});
+                    $row.addClass('bw-queue-table-row');
+                });
+            }
+            $('#table_list').on('post-body.bs.table', normalizeProjectReviewRows);
             function applyCompactProjectColumns() {
                 if (compactApplied) return;
                 var options = $('#table_list').bootstrapTable('getOptions');
@@ -232,6 +244,7 @@
                 compactFields.forEach(function (field) { $('#table_list').bootstrapTable('showColumn', field); });
                 var $search = $('#table_list').closest('.bootstrap-table').find('.fixed-table-toolbar .search');
                 if ($search.length) $search.addClass('bw-review-native-search').prependTo('#toolbar');
+                setTimeout(normalizeProjectReviewRows, 0);
             }
             $('#table_list').one('post-header.bs.table', applyCompactProjectColumns);
             setTimeout(applyCompactProjectColumns, 0);
