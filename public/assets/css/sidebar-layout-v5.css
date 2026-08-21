@@ -1,20 +1,71 @@
 /* BigWein V5 — desktop sidebar/content synchronization
    Loaded after sidebar-responsive.css + admin-redesign.css so this wins. */
 
+:root {
+    --bw-admin-sidebar-width: 245px;
+    --bw-admin-content-gutter: 24px;
+}
+
 @media (min-width: 768px) {
     #sidebar {
-        width: 245px !important;
-        min-width: 245px !important;
-        flex: 0 0 245px !important;
+        width: var(--bw-admin-sidebar-width) !important;
+        min-width: var(--bw-admin-sidebar-width) !important;
+        flex: 0 0 var(--bw-admin-sidebar-width) !important;
         transition: width .28s ease, min-width .28s ease, flex-basis .28s ease !important;
     }
 
-    /* Sidebar open */
+    /* Keep the fixed visual sidebar surface in sync with the outer shell. */
+    #sidebar .sidebar-wrapper {
+        width: var(--bw-admin-sidebar-width) !important;
+        min-width: var(--bw-admin-sidebar-width) !important;
+        max-width: var(--bw-admin-sidebar-width) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Authoritative desktop shell geometry. Do not inherit the legacy 272/250px rules. */
+    #app > #main.layout-navbar,
     #sidebar.active ~ #main.layout-navbar {
-        margin-left: 245px !important;
-        width: calc(100% - 245px) !important;
+        margin-left: var(--bw-admin-sidebar-width) !important;
+        width: calc(100% - var(--bw-admin-sidebar-width)) !important;
         max-width: none !important;
         transition: margin-left .28s ease, width .28s ease !important;
+    }
+
+    #main.layout-navbar {
+        position: relative !important;
+        left: 0 !important;
+        transform: none !important;
+        box-sizing: border-box !important;
+        max-width: none !important;
+        overflow-x: clip;
+    }
+
+    #main.layout-navbar > header,
+    #main.layout-navbar > #main-content {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        box-sizing: border-box !important;
+    }
+
+    #main.layout-navbar > #main-content {
+        position: relative !important;
+        inset: auto !important;
+        padding: 24px var(--bw-admin-content-gutter) 50px !important;
+        overflow-x: clip;
+    }
+
+    #main-content > .page-heading,
+    #main-content > .bw-command-dashboard,
+    #main-content > section,
+    #main-content > .section {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        transform: none !important;
+        box-sizing: border-box !important;
     }
 
     /* Sidebar closed: remove BOTH the visual sidebar and its reserved layout space. */
@@ -56,8 +107,8 @@
     }
 
     #sidebar.active ~ #main.layout-navbar {
-        margin-left: 245px !important;
-        width: calc(100% - 245px) !important;
+        margin-left: var(--bw-admin-sidebar-width) !important;
+        width: calc(100% - var(--bw-admin-sidebar-width)) !important;
     }
 
     #sidebar:not(.active) {
@@ -77,6 +128,12 @@
     #sidebar.active ~ #main.layout-navbar,
     #sidebar:not(.active) ~ #main.layout-navbar {
         margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    #main.layout-navbar > #main-content {
+        margin-left: 0 !important;
+        transform: none !important;
         width: 100% !important;
     }
 }
