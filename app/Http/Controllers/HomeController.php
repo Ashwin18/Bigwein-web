@@ -418,10 +418,47 @@ class HomeController extends Controller
 
             $categories = \App\Models\Category::where('status', 1)->get();
 
+            // Operational dashboard payload: small, read-only counts and review queues.
+            $statusCounts = function (string $table, string $column = 'request_status') {
+                try {
+                    return \DB::table($table)->select($column, \DB::raw('COUNT(*) as total'))
+                        ->groupBy($column)->pluck('total', $column)->map(fn ($value) => (int) $value)->all();
+                } catch (\Throwable $e) {
+                    return [];
+                }
+            };
+            $propertyApproval = $statusCounts('propertys');
+            $projectApproval = $statusCounts('projects');
+            $kycApproval = $statusCounts('customer_kyc', 'status');
+            $businessApproval = $statusCounts('businesses');
+
+            $dashboardData = [
+                'counts' => [
+                    'property' => $propertyApproval,
+                    'project' => $projectApproval,
+                    'kyc' => $kycApproval,
+                    'business' => $businessApproval,
+                    'builder_projects_pending' => \DB::table('projects as p')->join('customers as c', 'c.id', '=', 'p.added_by')->where('c.owner_type', 'builder')->where('p.request_status', 'pending')->count(),
+                    'total_customers' => \DB::table('customers')->count(),
+                    'total_owners' => \DB::table('customers')->whereNotNull('owner_type')->count(),
+                    'total_builders' => \DB::table('customers')->where('owner_type', 'builder')->count(),
+                    'total_enquiries' => \DB::table('interested_users')->count(),
+                ],
+                'recent_kyc' => \DB::table('customer_kyc as k')->join('customers as c', 'c.id', '=', 'k.customer_id')
+                    ->whereIn('k.status', ['submitted', 'under_review'])->select('k.id', 'k.status', 'k.submitted_at', 'c.name', 'c.owner_type')->orderByDesc('k.submitted_at')->limit(5)->get(),
+                'recent_properties' => \DB::table('propertys as p')->leftJoin('customers as c', 'c.id', '=', 'p.added_by')->leftJoin('categories as cat', 'cat.id', '=', 'p.category_id')
+                    ->where('p.request_status', 'pending')->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name', 'cat.category as category_name')->orderByDesc('p.created_at')->limit(5)->get(),
+                'recent_projects' => \DB::table('projects as p')->leftJoin('customers as c', 'c.id', '=', 'p.added_by')
+                    ->where('p.request_status', 'pending')->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name')->orderByDesc('p.created_at')->limit(5)->get(),
+                'recent_businesses' => \DB::table('businesses as b')->leftJoin('customers as c', 'c.id', '=', 'b.customer_id')->leftJoin('business_categories as bc', 'bc.id', '=', 'b.business_category_id')
+                    ->where('b.request_status', 'pending')->select('b.id', 'b.title', 'b.city', 'b.created_at', 'c.name as owner_name', 'bc.name as category_name')->orderByDesc('b.created_at')->limit(5)->get(),
+                'recent_users' => \DB::table('customers')->select('id', 'name', 'owner_type', 'mobile', 'email', 'kyc_status', 'created_at')->orderByDesc('created_at')->limit(8)->get(),
+            ];
+
             return view('home', compact(
                 'list','settings','properties','userData','chartData','currency_symbol','category_name','category_count',
                 'stats','pendingCount','cityStats','cityReports','categoryBreakdown','pendingProperties','cities','categories',
-                'demoModeEnabled','dataMode','dataModeLabel','modePropertyCount','modeProjectCount','modeBusinessCount'
+                'demoModeEnabled','dataMode','dataModeLabel','modePropertyCount','modeProjectCount','modeBusinessCount','dashboardData'
             ));
         }
     }
