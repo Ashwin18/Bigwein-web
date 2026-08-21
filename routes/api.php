@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\Api\Mobile\AmenityController as MobileAmenityController;
+use App\Http\Controllers\Api\Mobile\AuthController as MobileAuthController;
+use App\Http\Controllers\Api\Mobile\KycController as MobileKycController;
+use App\Http\Controllers\Api\Mobile\OwnerPropertyController as MobileOwnerPropertyController;
+use App\Http\Controllers\Api\Mobile\PropertyAttributeController as MobilePropertyAttributeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +18,36 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
+Route::prefix('mobile')->group(function () {
+    Route::post('auth/register', [MobileAuthController::class, 'register']);
+    Route::post('auth/login', [MobileAuthController::class, 'login']);
+    Route::get('amenities', [MobileAmenityController::class, 'index']);
+    Route::get('property-attributes', [MobilePropertyAttributeController::class, 'index']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('auth/logout', [MobileAuthController::class, 'logout']);
+        Route::get('me', [MobileAuthController::class, 'me']);
+
+        Route::get('kyc', [MobileKycController::class, 'show']);
+        Route::post('kyc', [MobileKycController::class, 'submit']);
+
+        Route::prefix('owner')->group(function () {
+            Route::get('properties', [MobileOwnerPropertyController::class, 'index']);
+            Route::get('properties/{id}', [MobileOwnerPropertyController::class, 'show'])->whereNumber('id');
+
+            Route::middleware('mobile.owner.kyc.approved')->group(function () {
+                Route::post('properties', [MobileOwnerPropertyController::class, 'store']);
+                Route::put('properties/{id}', [MobileOwnerPropertyController::class, 'update'])->whereNumber('id');
+                Route::post('properties/{id}/update', [MobileOwnerPropertyController::class, 'update'])->whereNumber('id');
+                Route::delete('properties/{id}', [MobileOwnerPropertyController::class, 'destroy'])->whereNumber('id');
+                Route::post('properties/{id}/gallery', [MobileOwnerPropertyController::class, 'uploadGallery'])->whereNumber('id');
+                Route::delete('properties/{id}/gallery/{imageId}', [MobileOwnerPropertyController::class, 'deleteGallery'])
+                    ->whereNumber('id')->whereNumber('imageId');
+            });
+        });
+    });
+});
 
 /*********************************************************************** */
 /** Property */

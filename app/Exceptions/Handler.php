@@ -5,6 +5,8 @@ namespace App\Exceptions;
 use Throwable;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class Handler extends ExceptionHandler
 {
@@ -47,6 +49,36 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        $this->renderable(function (Throwable $e, $request) {
+            if (
+                !$request->is('api/mobile/*')
+                || $e instanceof AuthenticationException
+                || $e instanceof HttpResponseException
+            ) return null;
+
+            if ($e instanceof HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+                $message = match ($status) {
+                    403 => 'Forbidden.',
+                    404 => 'Resource not found.',
+                    405 => 'Method not allowed.',
+                    default => $status >= 500 ? 'Something went wrong. Please try again.' : 'Request could not be completed.',
+                };
+
+                return response()->json([
+                    'error' => true,
+                    'message' => $message,
+                    'errors' => (object) [],
+                ], $status);
+            }
+
+            return response()->json([
+                'error' => true,
+                'message' => 'Something went wrong. Please try again.',
+                'errors' => (object) [],
+            ], 500);
+        });
     }
 
 
@@ -59,6 +91,14 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
+        if ($request->is('api/mobile/*')) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Unauthenticated.',
+                'errors' => (object) [],
+            ], 401);
+        }
+
         return $request->expectsJson()
             ? response()->json(['error' => true, 'message' => 'User is not authenticated'], 401)
             : redirect()->guest($exception->redirectTo() ?? route('login'));
