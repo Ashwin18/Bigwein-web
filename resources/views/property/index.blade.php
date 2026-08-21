@@ -359,15 +359,14 @@ $request_status = request("request_status","");
             var active = Number(row.active_state) === 1;
             var category = row.category && row.category.category ? row.category.category : 'Uncategorised';
             var submitted = row.created_at ? new Date(row.created_at).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}) : '—';
+            var propertyTypes = {'0':'For Sale','1':'For Rent','2':'Sold','3':'Rented'};
+            var propertyType = propertyTypes[String(row.property_type_raw)] || 'Property';
             var reviewUrl = "{{ url('property-approval') }}/" + encodeURIComponent(row.id) + '/detail';
             var secondary = bwSecondaryPropertyActions(row.operate);
             return '<article class="bw-queue-card">' +
-                '<div class="bw-queue-main"><div class="bw-queue-icon"><i class="bi bi-building"></i></div><div class="bw-queue-title"><strong>' + bwQueueEscape(row.title) + '</strong><span>' + bwQueueEscape(row.added_by || 'Owner unavailable') + ' · ' + bwQueueEscape(category) + '</span></div></div>' +
-                '<div class="bw-queue-meta"><small>Location</small><strong>' + bwQueueEscape(row.city || '—') + '</strong></div>' +
-                '<div class="bw-queue-meta"><small>Price</small><strong>' + bwQueueEscape(row.price || '—') + '</strong></div>' +
-                '<div class="bw-queue-meta"><small>Submitted</small><strong>' + bwQueueEscape(submitted) + '</strong></div>' +
-                '<div class="bw-queue-statuses"><span class="bw-review-status bw-review-status--' + bwQueueEscape(approval) + '"><span class="bw-review-status__dot"></span>' + bwQueueEscape(approval.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();})) + '</span><span class="bw-review-status bw-review-status--' + (active?'active':'inactive') + '"><span class="bw-review-status__dot"></span>' + (active?'Active':'Inactive') + '</span></div>' +
-                '<div class="bw-queue-actions"><a class="btn btn-sm btn-outline-danger" href="' + reviewUrl + '"><i class="bi bi-eye"></i> ' + (approval==='pending'?'Review':'View') + '</a>' + (secondary?'<div class="bw-queue-secondary-actions">'+secondary+'</div>':'') + '</div></article>';
+                '<div class="bw-queue-left"><div class="bw-queue-main"><div class="bw-queue-icon"><i class="bi bi-building"></i></div><div class="bw-queue-title"><strong>' + bwQueueEscape(row.title) + '</strong><span>' + bwQueueEscape(row.added_by || 'Owner unavailable') + '</span></div></div><div class="bw-queue-inline-meta"><span><i class="bi bi-tag"></i>' + bwQueueEscape(category) + '</span><span><i class="bi bi-geo-alt"></i>' + bwQueueEscape(row.city || '—') + '</span></div></div>' +
+                '<div class="bw-queue-middle"><div class="bw-queue-value"><small>Price</small><strong>' + bwQueueEscape(row.price || '—') + '</strong></div><div class="bw-queue-value"><small>Submitted</small><strong>' + bwQueueEscape(submitted) + '</strong></div><span class="bw-queue-type">' + bwQueueEscape(propertyType) + '</span></div>' +
+                '<div class="bw-queue-right"><div class="bw-queue-statuses"><span class="bw-review-status bw-review-status--' + bwQueueEscape(approval) + '"><span class="bw-review-status__dot"></span>' + bwQueueEscape(approval.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();})) + '</span><span class="bw-review-status bw-review-status--' + (active?'active':'inactive') + '"><span class="bw-review-status__dot"></span>' + (active?'Active':'Inactive') + '</span></div><div class="bw-queue-actions"><a class="btn btn-sm btn-outline-danger" href="' + reviewUrl + '"><i class="bi bi-eye"></i> ' + (approval==='pending'?'Review':'View') + '</a>' + (secondary?'<div class="bw-queue-secondary-actions">'+secondary+'</div>':'') + '</div></div></article>';
         }
 
         window.actionEvents = {
