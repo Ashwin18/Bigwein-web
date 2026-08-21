@@ -30,7 +30,7 @@
                 <li style="list-style:none;padding:10px 16px 2px;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.7px;">Property</li>
 
                 @if(has_permissions('read','property'))
-                <li class="sidebar-item {{ request()->is('property*') && !request()->is('property-approval*') ? 'active' : '' }}">
+                <li class="sidebar-item {{ request()->is('property*') && !request()->is('property-approval*') && !request()->is('property-attributes*') ? 'active' : '' }}">
                     <a href="{{ url('property') }}" class="sidebar-link">
                         <i class="bi bi-building"></i><span class="menu-item">All Properties</span>
                     </a>
@@ -229,6 +229,14 @@
                         <i class="bi bi-search"></i><span class="menu-item">Search Settings</span>
                     </a>
                 </li>
+
+                @if($bwSidebarSuperAdmin)
+                <li class="sidebar-item {{ request()->is('property-attributes*') ? 'active' : '' }}">
+                    <a href="{{ route('property-attributes.index') }}" class="sidebar-link">
+                        <i class="bi bi-ui-checks-grid"></i><span class="menu-item">Property Attribute Masters</span>
+                    </a>
+                </li>
+                @endif
 
                 <li style="list-style:none;padding:10px 16px 2px;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.7px;">Settings</li>
 

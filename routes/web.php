@@ -36,6 +36,7 @@ use App\Http\Controllers\PackageFeatureController;
 use App\Http\Controllers\HomepageSectionController;
 use App\Http\Controllers\OutdoorFacilityController;
 use App\Http\Controllers\PropertysInquiryController;
+use App\Http\Controllers\PropertyAttributeMasterController;
 use App\Http\Controllers\VerifyCustomerFormController;
 
 /*
@@ -244,6 +245,16 @@ Route::middleware(['language'])->group(function () {
         // Search Settings
         Route::get('search-settings',           [\App\Http\Controllers\SearchSettingsController::class, 'index']);
         Route::post('search-settings/save',     [\App\Http\Controllers\SearchSettingsController::class, 'save']);
+
+        // Normalized property attribute masters (super-admin guard is enforced in the controller).
+        Route::get('property-attributes', [PropertyAttributeMasterController::class, 'index'])->name('property-attributes.index');
+        Route::post('property-attributes/groups', [PropertyAttributeMasterController::class, 'storeGroup'])->name('property-attributes.groups.store');
+        Route::put('property-attributes/groups/{group}', [PropertyAttributeMasterController::class, 'updateGroup'])->name('property-attributes.groups.update');
+        Route::post('property-attributes/options', [PropertyAttributeMasterController::class, 'storeOption'])->name('property-attributes.options.store');
+        Route::put('property-attributes/options/{option}', [PropertyAttributeMasterController::class, 'updateOption'])->name('property-attributes.options.update');
+        Route::post('property-attributes/mappings', [PropertyAttributeMasterController::class, 'storeMapping'])->name('property-attributes.mappings.store');
+        Route::put('property-attributes/mappings/{mapping}', [PropertyAttributeMasterController::class, 'updateMapping'])->name('property-attributes.mappings.update');
+        Route::delete('property-attributes/mappings/{mapping}', [PropertyAttributeMasterController::class, 'destroyMapping'])->name('property-attributes.mappings.destroy');
         Route::post('language_update', [LanguageController::class, 'update'])->name('language_update');
         Route::get('language-destory/{id}', [LanguageController::class, 'destroy'])->name('language.destroy');
 
@@ -553,7 +564,6 @@ Route::get('/run-scheduler', function () {
     Artisan::call('schedule:run', ['--quiet' => true]);
     return response()->json(['status' => 'Scheduler processed']);
 });
-
 
 
 

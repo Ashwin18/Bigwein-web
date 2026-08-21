@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Cache;
 
 class SearchSettingsController extends Controller
 {
+    // Phase 1 compatibility: BHK/property-status settings remain active here until
+    // the posting and search consumers migrate to Property Attribute Masters in Phase 3.
     /* ─── DEFAULTS ────────────────────────────────────────────────────────── */
     public static function defaults(): array
     {
