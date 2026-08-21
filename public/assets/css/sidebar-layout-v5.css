@@ -3,16 +3,16 @@
 
 @media (min-width: 768px) {
     #sidebar {
-        width: 270px !important;
-        min-width: 270px !important;
-        flex: 0 0 270px !important;
+        width: 245px !important;
+        min-width: 245px !important;
+        flex: 0 0 245px !important;
         transition: width .28s ease, min-width .28s ease, flex-basis .28s ease !important;
     }
 
     /* Sidebar open */
     #sidebar.active ~ #main.layout-navbar {
-        margin-left: 270px !important;
-        width: calc(100% - 270px) !important;
+        margin-left: 245px !important;
+        width: calc(100% - 245px) !important;
         max-width: none !important;
         transition: margin-left .28s ease, width .28s ease !important;
     }
@@ -50,14 +50,14 @@
 
 @media (min-width: 768px) and (max-width: 1199.98px) {
     #sidebar {
-        width: 250px !important;
-        min-width: 250px !important;
-        flex-basis: 250px !important;
+        width: 245px !important;
+        min-width: 245px !important;
+        flex-basis: 245px !important;
     }
 
     #sidebar.active ~ #main.layout-navbar {
-        margin-left: 250px !important;
-        width: calc(100% - 250px) !important;
+        margin-left: 245px !important;
+        width: calc(100% - 245px) !important;
     }
 
     #sidebar:not(.active) {
