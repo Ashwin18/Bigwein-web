@@ -9,6 +9,10 @@ class BuilderProjectApprovalController extends Controller
 {
     public function index(Request $request)
     {
+        if (!has_permissions('read', 'project')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $status=$request->get('status','pending');
         $q=DB::table('projects as p')
             ->join('customers as c','c.id','=','p.added_by')
@@ -36,6 +40,10 @@ class BuilderProjectApprovalController extends Controller
 
     public function show($id)
     {
+        if (!has_permissions('read', 'project')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $project=DB::table('projects as p')
             ->join('customers as c','c.id','=','p.added_by')
             ->leftJoin('builder_profiles as bp','bp.customer_id','=','c.id')
@@ -56,6 +64,10 @@ class BuilderProjectApprovalController extends Controller
 
     public function updateStatus(Request $request,$id)
     {
+        if (!has_permissions('update', 'project')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $request->validate(['status'=>'required|in:approved,changes_requested,rejected','remarks'=>'nullable|string|max:1500']);
         if(in_array($request->status,['changes_requested','rejected'],true) && !$request->filled('remarks')){
             return back()->with('error','Remarks are required when requesting changes or rejecting a project.');

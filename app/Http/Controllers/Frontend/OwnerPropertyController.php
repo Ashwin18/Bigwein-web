@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class OwnerPropertyController extends Controller
@@ -478,6 +479,14 @@ class OwnerPropertyController extends Controller
             'unit_number' => 'nullable|string|max:80',
         ], $this->categoryValidationRules($categoryProfile, $parameters)));
 
+        $incomingGalleryCount = count($request->file('gallery', []));
+        $existingGalleryCount = PropertyImages::where('propertys_id', $prop->id)->count();
+        if ($existingGalleryCount + $incomingGalleryCount > 20) {
+            throw ValidationException::withMessages([
+                'gallery' => 'A property can have a maximum of 20 gallery images. Remove existing images before uploading more.',
+            ]);
+        }
+
         $uploadedFiles = [];
         try {
         DB::beginTransaction();
@@ -636,6 +645,11 @@ class OwnerPropertyController extends Controller
         $prop = Property::where('id', $id)->where('added_by', $cust['id'])->firstOrFail();
 
         $request->validate(['image' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120']);
+        if (PropertyImages::where('propertys_id', $prop->id)->count() >= 20) {
+            throw ValidationException::withMessages([
+                'image' => 'A property can have a maximum of 20 gallery images. Remove an existing image before uploading another.',
+            ]);
+        }
         $filename = $this->storeGalleryImage($request->file('image'), $prop->id);
 
         $img = PropertyImages::create(['propertys_id' => $prop->id, 'image' => $filename]);

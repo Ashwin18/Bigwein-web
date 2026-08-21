@@ -1,4 +1,5 @@
 <div id="sidebar" class="active">
+    @php $bwSidebarSuperAdmin = (int) (auth()->user()->type ?? 1) === 0; @endphp
     <div class="sidebar-wrapper active">
 
         <div class="sidebar-header" style="padding:18px 20px;border-bottom:1px solid #F1F5F9;min-height:74px;display:flex;align-items:center;">
@@ -34,7 +35,9 @@
                         <i class="bi bi-building"></i><span class="menu-item">All Properties</span>
                     </a>
                 </li>
+                @endif
 
+                @if(has_permissions('read','project'))
                 <li class="sidebar-item {{ request()->is('project*') ? 'active' : '' }}">
                     <a href="{{ url('project') }}" class="sidebar-link">
                         <i class="bi bi-kanban"></i><span class="menu-item">Projects</span>
@@ -47,13 +50,14 @@
                     <a href="{{ url('builder-project-approvals') }}" class="sidebar-link">
                         <i class="bi bi-buildings"></i>
                         <span class="menu-item">Builder Project Approvals
-                          @php try { $bpPending=\DB::table('projects as p')->join('customers as c','c.id','=','p.added_by')->where('c.owner_type','builder')->where('p.request_status','pending')->count(); } catch(\Throwable $e){ $bpPending=0; } @endphp
+                          @php try { $bpQ=\DB::table('projects as p')->join('customers as c','c.id','=','p.added_by')->where('c.owner_type','builder')->where('p.request_status','pending'); \App\Services\DataModeService::applyProjectScope($bpQ,'p'); $bpPending=$bpQ->count(); } catch(\Throwable $e){ $bpPending=0; } @endphp
                           @if($bpPending>0)<span class="badge bg-danger ms-1" style="font-size:10px">{{ $bpPending }}</span>@endif
                         </span>
                     </a>
                 </li>
                 @endif
 
+                @if(has_permissions('read','property'))
                 <li class="sidebar-item {{ request()->is('property-approval*') ? 'active' : '' }}">
                     <a href="{{ url('property-approval') }}" class="sidebar-link">
                         <i class="bi bi-patch-check"></i>
@@ -63,7 +67,9 @@
                         </span>
                     </a>
                 </li>
+                @endif
 
+                @if($bwSidebarSuperAdmin)
                 <li style="list-style:none;padding:16px 16px 2px;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.7px;">Business</li>
 
                 <li class="sidebar-item {{ request()->is('business-approvals*') ? 'active' : '' }}">
@@ -91,7 +97,9 @@
                         </span>
                     </a>
                 </li>
+                @endif
 
+                @if(has_permissions('read','customer') || $bwSidebarSuperAdmin)
                 <li style="list-style:none;padding:16px 16px 2px;font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.7px;">Owner</li>
 
                 <li class="sidebar-item {{ request()->is('owner-management*') ? 'active' : '' }}">
@@ -106,8 +114,10 @@
                         <span class="menu-item">KYC Verification
                             @php
                                 try {
-                                    $kycPendingSidebar = \DB::table('customer_kyc')
-                                        ->whereIn('status', ['submitted','under_review'])
+                                    $kycPendingSidebar = \DB::table('customer_kyc as k')
+                                        ->join('customers as c','c.id','=','k.customer_id')
+                                        ->whereNotNull('c.owner_type')
+                                        ->whereIn('k.status', ['submitted','under_review'])
                                         ->count();
                                 } catch(\Throwable $e) {
                                     $kycPendingSidebar = 0;
@@ -124,11 +134,12 @@
                     <a href="{{ url('builder-verification-admin') }}" class="sidebar-link">
                         <i class="bi bi-building-check"></i>
                         <span class="menu-item">Builder Verification
-                            @php try { $builderPendingSidebar = \DB::table('builder_profiles')->whereIn('status',['submitted','under_review'])->count(); } catch(\Throwable $e){ $builderPendingSidebar=0; } @endphp
+                            @php try { $builderPendingSidebar = \DB::table('builder_profiles as b')->join('customers as c','c.id','=','b.customer_id')->where('c.owner_type','builder')->whereIn('b.status',['submitted','under_review'])->count(); } catch(\Throwable $e){ $builderPendingSidebar=0; } @endphp
                             @if($builderPendingSidebar > 0)<span class="badge bg-danger ms-1" style="font-size:10px;">{{ $builderPendingSidebar }}</span>@endif
                         </span>
                     </a>
                 </li>
+                @endif
 
                 @if(has_permissions('read','customer'))
                 <li class="sidebar-item {{ request()->is('customer*') ? 'active' : '' }}">

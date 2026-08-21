@@ -144,6 +144,10 @@ class OwnerKycController extends Controller
 
     public function adminIndex(Request $request)
     {
+        if (!has_permissions('read', 'customer')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $status = $request->get('status', 'submitted');
         $q = DB::table('customer_kyc as k')
             ->join('customers as c', 'c.id', '=', 'k.customer_id')
@@ -170,17 +174,26 @@ class OwnerKycController extends Controller
         }
 
         $rows = $q->orderByDesc('k.submitted_at')->paginate(20)->withQueryString();
+        $countFor = fn (array $statuses) => DB::table('customer_kyc as k')
+            ->join('customers as c', 'c.id', '=', 'k.customer_id')
+            ->whereNotNull('c.owner_type')
+            ->whereIn('k.status', $statuses)
+            ->count();
         $counts = [
-            'submitted' => DB::table('customer_kyc')->whereIn('status',['submitted','under_review'])->count(),
-            'approved' => DB::table('customer_kyc')->where('status','approved')->count(),
-            'changes_requested' => DB::table('customer_kyc')->where('status','changes_requested')->count(),
-            'rejected' => DB::table('customer_kyc')->where('status','rejected')->count(),
+            'submitted' => $countFor(['submitted','under_review']),
+            'approved' => $countFor(['approved']),
+            'changes_requested' => $countFor(['changes_requested']),
+            'rejected' => $countFor(['rejected']),
         ];
         return view('owner-management.kyc', compact('rows','counts','status'));
     }
 
     public function adminUpdate(Request $request, $id)
     {
+        if (!has_permissions('update', 'customer')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $request->validate([
             'status' => 'required|in:approved,rejected,changes_requested',
             'remarks' => 'nullable|string|max:500',

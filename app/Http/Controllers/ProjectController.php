@@ -230,10 +230,17 @@ class ProjectController extends Controller
 
         if (isset($_GET['search']) && !empty($_GET['search'])) {
             $search = $_GET['search'];
-            $sql = $sql->where('id', 'LIKE', "%$search%")->orwhere('title', 'LIKE', "%$search%")->orwhere('location', 'LIKE', "%$search%")->orwhereHas('category', function ($query) use ($search) {
-                $query->where('category', 'LIKE', "%$search%");
-            })->orWhereHas('customer', function ($query) use ($search) {
-                $query->where('name', 'LIKE', "%$search%")->orwhere('email', 'LIKE', "%$search%");
+            $sql = $sql->where(function ($query) use ($search) {
+                $query->where('id', 'LIKE', "%$search%")
+                    ->orWhere('title', 'LIKE', "%$search%")
+                    ->orWhere('location', 'LIKE', "%$search%")
+                    ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                        $categoryQuery->where('category', 'LIKE', "%$search%");
+                    })
+                    ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                        $customerQuery->where('name', 'LIKE', "%$search%")
+                            ->orWhere('email', 'LIKE', "%$search%");
+                    });
             });
         }
 

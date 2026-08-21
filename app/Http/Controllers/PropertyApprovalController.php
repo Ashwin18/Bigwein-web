@@ -114,6 +114,10 @@ class PropertyApprovalController extends Controller
 
     public function detail($id)
     {
+        if (!has_permissions('read', 'property')) {
+            return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
+        }
+
         $id = (int) $id;
 
         $prop = DB::table('propertys as p')

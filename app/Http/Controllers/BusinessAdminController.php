@@ -4,7 +4,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 class BusinessAdminController extends Controller {
+ private function ensureSuperAdmin(): void {
+  abort_unless((int) (auth()->user()->type ?? 1) === 0, 403, trans(PERMISSION_ERROR_MSG));
+ }
  public function index(Request $r){
+  $this->ensureSuperAdmin();
   $status=$r->get('status','pending');$q=DB::table('businesses as b')->leftJoin('customers as cu','cu.id','=','b.customer_id')->leftJoin('business_categories as c','c.id','=','b.business_category_id');
   if($status!=='all')$q->where('b.request_status',$status);if($r->filled('search')){$s=$r->search;$q->where(function($x)use($s){$x->where('b.title','like',"%$s%")->orWhere('b.city','like',"%$s%")->orWhere('cu.name','like',"%$s%");});}
   $rows=$q->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','cu.kyc_status as owner_kyc_status','c.name as category_name')->orderByDesc('b.id')->paginate(15)->withQueryString();
@@ -12,11 +16,13 @@ class BusinessAdminController extends Controller {
   return view('business-management.index',compact('rows','counts','status'));
  }
  public function show($id){
+  $this->ensureSuperAdmin();
   $business=DB::table('businesses as b')->leftJoin('customers as cu','cu.id','=','b.customer_id')->leftJoin('business_categories as c','c.id','=','b.business_category_id')->where('b.id',$id)->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','cu.email as owner_email','cu.kyc_status as owner_kyc_status','c.name as category_name')->first();if(!$business)abort(404);
   $images=DB::table('business_images')->where('business_id',$id)->get();$documents=DB::table('business_documents')->where('business_id',$id)->get();
   return view('business-management.show',compact('business','images','documents'));
  }
  public function updateStatus(Request $r,$id){
+   $this->ensureSuperAdmin();
    $r->validate(['status'=>'required|in:approved,rejected,changes_requested','remarks'=>'nullable|max:1000']);
    if(in_array($r->status,['rejected','changes_requested'],true) && !$r->filled('remarks')){
       return back()->with('error','Please enter remarks before rejecting or requesting changes.');
@@ -32,6 +38,7 @@ class BusinessAdminController extends Controller {
    return back()->with('success',$msg);
  }
  public function enquiries(Request $r){
+   $this->ensureSuperAdmin();
    $status=$r->get('status','all');
    $q=DB::table('business_enquiries as e')
       ->join('businesses as b','b.id','=','e.business_id')
@@ -59,11 +66,12 @@ class BusinessAdminController extends Controller {
  }
 
  public function updateEnquiryStatus(Request $r,$id){
+   $this->ensureSuperAdmin();
    $r->validate(['status'=>'required|in:new,contacted,closed']);
    DB::table('business_enquiries')->where('id',$id)->update(['status'=>$r->status,'updated_at'=>now()]);
    return back()->with('success','Business enquiry status updated.');
  }
 
- public function categories(){ $rows=DB::table('business_categories')->orderBy('sort_order')->orderBy('name')->get();return view('business-management.categories',compact('rows')); }
- public function saveCategory(Request $r){$r->validate(['name'=>'required|max:120']);$slug=Str::slug($r->name);DB::table('business_categories')->insert(['name'=>$r->name,'slug'=>$slug.'-'.Str::lower(Str::random(3)),'status'=>1,'sort_order'=>$r->sort_order??0,'created_at'=>now(),'updated_at'=>now()]);return back()->with('success','Business category saved.');}
+ public function categories(){ $this->ensureSuperAdmin(); $rows=DB::table('business_categories')->orderBy('sort_order')->orderBy('name')->get();return view('business-management.categories',compact('rows')); }
+ public function saveCategory(Request $r){$this->ensureSuperAdmin();$r->validate(['name'=>'required|max:120']);$slug=Str::slug($r->name);DB::table('business_categories')->insert(['name'=>$r->name,'slug'=>$slug.'-'.Str::lower(Str::random(3)),'status'=>1,'sort_order'=>$r->sort_order??0,'created_at'=>now(),'updated_at'=>now()]);return back()->with('success','Business category saved.');}
 }

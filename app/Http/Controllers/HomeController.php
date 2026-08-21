@@ -427,10 +427,52 @@ class HomeController extends Controller
                     return [];
                 }
             };
-            $propertyApproval = $statusCounts('propertys');
-            $projectApproval = $statusCounts('projects');
-            $kycApproval = $statusCounts('customer_kyc', 'status');
+            $propertyApprovalQuery = \DB::table('propertys')
+                ->where('added_by', '!=', 0);
+            $scopeProperty($propertyApprovalQuery, 'propertys', true);
+            $propertyApproval = $propertyApprovalQuery
+                ->select('request_status', \DB::raw('COUNT(*) as total'))
+                ->groupBy('request_status')
+                ->pluck('total', 'request_status')
+                ->map(fn ($value) => (int) $value)
+                ->all();
+
+            $projectApprovalQuery = \DB::table('projects');
+            \App\Services\DataModeService::applyProjectScope($projectApprovalQuery, 'projects');
+            $projectApproval = $projectApprovalQuery
+                ->select('request_status', \DB::raw('COUNT(*) as total'))
+                ->groupBy('request_status')
+                ->pluck('total', 'request_status')
+                ->map(fn ($value) => (int) $value)
+                ->all();
+
+            $kycApproval = \DB::table('customer_kyc as k')
+                ->join('customers as c', 'c.id', '=', 'k.customer_id')
+                ->whereNotNull('c.owner_type')
+                ->select('k.status', \DB::raw('COUNT(*) as total'))
+                ->groupBy('k.status')
+                ->pluck('total', 'k.status')
+                ->map(fn ($value) => (int) $value)
+                ->all();
             $businessApproval = $statusCounts('businesses');
+
+            $builderProjectsPendingQuery = \DB::table('projects as p')
+                ->join('customers as c', 'c.id', '=', 'p.added_by')
+                ->where('c.owner_type', 'builder')
+                ->where('p.request_status', 'pending');
+            \App\Services\DataModeService::applyProjectScope($builderProjectsPendingQuery, 'p');
+
+            $recentPropertiesQuery = \DB::table('propertys as p')
+                ->leftJoin('customers as c', 'c.id', '=', 'p.added_by')
+                ->leftJoin('categories as cat', 'cat.id', '=', 'p.category_id')
+                ->where('p.added_by', '!=', 0)
+                ->where('p.request_status', 'pending');
+            $scopeProperty($recentPropertiesQuery, 'p', true);
+
+            $recentProjectsQuery = \DB::table('projects as p')
+                ->leftJoin('customers as c', 'c.id', '=', 'p.added_by')
+                ->where('p.request_status', 'pending');
+            \App\Services\DataModeService::applyProjectScope($recentProjectsQuery, 'p');
 
             $dashboardData = [
                 'counts' => [
@@ -438,18 +480,18 @@ class HomeController extends Controller
                     'project' => $projectApproval,
                     'kyc' => $kycApproval,
                     'business' => $businessApproval,
-                    'builder_projects_pending' => \DB::table('projects as p')->join('customers as c', 'c.id', '=', 'p.added_by')->where('c.owner_type', 'builder')->where('p.request_status', 'pending')->count(),
+                    'builder_projects_pending' => $builderProjectsPendingQuery->count(),
                     'total_customers' => \DB::table('customers')->count(),
                     'total_owners' => \DB::table('customers')->whereNotNull('owner_type')->count(),
                     'total_builders' => \DB::table('customers')->where('owner_type', 'builder')->count(),
                     'total_enquiries' => \DB::table('interested_users')->count(),
                 ],
                 'recent_kyc' => \DB::table('customer_kyc as k')->join('customers as c', 'c.id', '=', 'k.customer_id')
-                    ->whereIn('k.status', ['submitted', 'under_review'])->select('k.id', 'k.status', 'k.submitted_at', 'c.name', 'c.owner_type')->orderByDesc('k.submitted_at')->limit(5)->get(),
-                'recent_properties' => \DB::table('propertys as p')->leftJoin('customers as c', 'c.id', '=', 'p.added_by')->leftJoin('categories as cat', 'cat.id', '=', 'p.category_id')
-                    ->where('p.request_status', 'pending')->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name', 'cat.category as category_name')->orderByDesc('p.created_at')->limit(5)->get(),
-                'recent_projects' => \DB::table('projects as p')->leftJoin('customers as c', 'c.id', '=', 'p.added_by')
-                    ->where('p.request_status', 'pending')->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name')->orderByDesc('p.created_at')->limit(5)->get(),
+                    ->whereNotNull('c.owner_type')->whereIn('k.status', ['submitted', 'under_review'])->select('k.id', 'k.status', 'k.submitted_at', 'c.name', 'c.owner_type')->orderByDesc('k.submitted_at')->limit(5)->get(),
+                'recent_properties' => $recentPropertiesQuery
+                    ->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name', 'cat.category as category_name')->orderByDesc('p.created_at')->limit(5)->get(),
+                'recent_projects' => $recentProjectsQuery
+                    ->select('p.id', 'p.title', 'p.city', 'p.created_at', 'c.name as owner_name')->orderByDesc('p.created_at')->limit(5)->get(),
                 'recent_businesses' => \DB::table('businesses as b')->leftJoin('customers as c', 'c.id', '=', 'b.customer_id')->leftJoin('business_categories as bc', 'bc.id', '=', 'b.business_category_id')
                     ->where('b.request_status', 'pending')->select('b.id', 'b.title', 'b.city', 'b.created_at', 'c.name as owner_name', 'bc.name as category_name')->orderByDesc('b.created_at')->limit(5)->get(),
                 'recent_users' => \DB::table('customers')->select('id', 'name', 'owner_type', 'mobile', 'email', 'kyc_status', 'created_at')->orderByDesc('created_at')->limit(8)->get(),

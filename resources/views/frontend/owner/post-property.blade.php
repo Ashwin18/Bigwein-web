@@ -581,7 +581,7 @@ $swCommTypes    = $swCfg['commercial_types'] ?? ['Office','Co-working Space','Sh
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
           <div style="width:100px;height:80px;border-radius:var(--r);overflow:hidden;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;" id="img3dPreview">
             @if($isEdit && !empty($prop->three_d_image))
-              <img src="{{ url('images/'.config('global.3D_IMG_PATH','3d_image/').$prop->three_d_image) }}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'"/>
+              <img src="{{ $prop->three_d_image }}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'"/>
             @else
               <i class="fa-solid fa-cube" style="font-size:28px;color:var(--gray3);"></i>
             @endif
