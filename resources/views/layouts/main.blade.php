@@ -20,7 +20,7 @@
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     @include('layouts.include')
     <link rel="stylesheet" href="{{ asset('assets/css/sidebar-responsive.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/admin-redesign.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/admin-redesign-v23.css') }}?v=23.1">
     <link rel="stylesheet" href="{{ asset('assets/css/sidebar-layout-v5.css') }}?v=5.0.1">
     @yield('css')
     
