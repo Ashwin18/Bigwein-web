@@ -100,30 +100,24 @@
       @endphp
 
       <article class="bw-kyc-card">
-        <div class="bw-kyc-card-top">
-          <div class="bw-owner">
+        <div class="bw-kyc-card-top bw-approval-card bw-approval-card--kyc">
+          <div class="bw-approval-card__left"><div class="bw-owner">
             <div class="bw-owner-avatar">{{ strtoupper(substr($r->name ?: 'O',0,1)) }}</div>
             <div style="min-width:0;">
               <strong>{{ $r->name ?: 'Owner' }}</strong>
               <small>{{ $r->email ?: 'No email' }} · {{ $r->mobile ?: 'No mobile' }}</small>
               <span class="bw-owner-type">{{ $isBuilder ? 'Builder / Developer' : 'Seller / Owner' }}</span>
+              @if($isBuilder && $r->company_name)<small class="mt-1"><i class="bi bi-building"></i> {{ $r->company_name }}</small>@endif
             </div>
-          </div>
+          </div><div class="bw-approval-card__metadata"><span><i class="bi bi-envelope"></i>{{ $r->email ?: 'No email' }}</span><span><i class="bi bi-phone"></i>{{ $r->mobile ?: 'No mobile' }}</span></div></div>
 
-          <div class="bw-kyc-location">
-            <div class="bw-kyc-mini">
-              <small>Location</small>
-              <strong>{{ $location ?: 'Not provided' }}</strong>
-            </div>
-            <div class="bw-kyc-mini">
-              <small>Submitted</small>
-              <strong>{{ $r->submitted_at ? \Carbon\Carbon::parse($r->submitted_at)->format('d M Y, h:i A') : '—' }}</strong>
-            </div>
-          </div>
+          <div class="bw-approval-card__middle"><div class="bw-approval-fact"><small>Submitted</small><strong>{{ $r->submitted_at ? \Carbon\Carbon::parse($r->submitted_at)->format('d M Y, h:i A') : '—' }}</strong></div><div class="bw-approval-fact"><small>Documents</small><strong>{{ $r->aadhaar_front ? ($r->aadhaar_back ? '2 Aadhaar files' : '1 Aadhaar file') : 'No documents' }}</strong></div><div class="bw-approval-fact"><small>Listing Eligibility</small><span class="bw-review-eligibility {{ $r->status==='approved'?'is-eligible':'is-blocked' }}"><i class="bi {{ $r->status==='approved'?'bi-unlock':'bi-lock' }}"></i> {{ $r->status==='approved'?'Eligible to List':'Listing Blocked' }}</span></div></div>
 
-          <div style="display:flex;align-items:flex-end;gap:8px;flex-direction:column;">
+          <div class="bw-approval-card__right">
+            <div class="bw-approval-card__badges">
             @include('components.admin.status-badge',['status'=>$r->status,'prefix'=>'KYC '])
-            <span class="bw-review-eligibility {{ $r->status==='approved'?'is-eligible':'is-blocked' }}"><i class="bi {{ $r->status==='approved'?'bi-unlock':'bi-lock' }}"></i> {{ $r->status==='approved'?'Eligible to List':'Listing Blocked' }}</span>
+            @include('components.admin.status-badge',['status'=>$r->status==='approved'?'active':'inactive','prefix'=>'Account '])
+            </div>
             <button class="btn btn-sm {{ in_array($r->status,['submitted','under_review'],true)?'btn-danger':'btn-outline-secondary' }}" type="button" data-bs-toggle="collapse" data-bs-target="#kyc-review-{{ $r->id }}" aria-expanded="false" aria-controls="kyc-review-{{ $r->id }}"><i class="bi bi-eye"></i> {{ in_array($r->status,['submitted','under_review'],true)?'Review':'View Details' }}</button>
           </div>
         </div>
