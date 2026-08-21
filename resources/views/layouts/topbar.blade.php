@@ -14,11 +14,10 @@
             @endphp
             @if($data == 0)
                 @if(has_permissions('update', 'email_configurations'))
-                    <div class="mx-auto order-0">
-                        <div class="alert alert-danger my-2" role="alert">
-                            <i class="fa fa-exclamation"></i> {{ __("Email Configration is not verified") }} <a href="{{route('email-configurations-index')}}" class="alert-link">{{ __("Click here to redirect to email configration") }}</a>.
-                        </div>
-                    </div>
+                    <a class="bw-email-status d-none d-xl-inline-flex" href="{{ route('email-configurations-index') }}" title="Open email configuration">
+                        <span class="bw-email-status-icon"><i class="bi bi-envelope-exclamation"></i></span>
+                        <span class="bw-email-status-copy"><strong>Email not verified</strong><small>Review configuration</small></span>
+                    </a>
                 @endif
             @endif
              <button class="navbar-toggler" type="button" data-bs-toggle="collapse"

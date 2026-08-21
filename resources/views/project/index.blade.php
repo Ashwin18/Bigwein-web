@@ -20,7 +20,14 @@
 
 @section('content')
 
-    <section class="section">
+    <section class="section bw-project-review-mode">
+        @php $projectRequestStatus = request('request_status',''); @endphp
+        @include('components.admin.summary-cards', ['items' => [
+            ['label'=>'Pending','count'=>$approvalCounts['pending'],'url'=>url('project?request_status=pending'),'active'=>$projectRequestStatus==='pending','tone'=>'warning','icon'=>'bi-hourglass-split'],
+            ['label'=>'Approved','count'=>$approvalCounts['approved'],'url'=>url('project?request_status=approved'),'active'=>$projectRequestStatus==='approved','tone'=>'success','icon'=>'bi-check-circle'],
+            ['label'=>'Rejected','count'=>$approvalCounts['rejected'],'url'=>url('project?request_status=rejected'),'active'=>$projectRequestStatus==='rejected','tone'=>'danger','icon'=>'bi-x-circle'],
+            ['label'=>'Total','count'=>$approvalCounts['total'],'url'=>url('project'),'active'=>$projectRequestStatus==='','tone'=>'info','icon'=>'bi-collection'],
+        ]])
         <div class="card">
             @if (has_permissions('create', 'project'))
                 <div class="card-header">
@@ -36,7 +43,7 @@
             @endif
             <div class="card-body">
 
-                <div class="row " id="toolbar">
+                <div class="row bw-review-filter" id="toolbar">
 
                     {{-- Filter Category --}}
                     <div class="col-xl-3 mt-2">
@@ -49,6 +56,7 @@
                             @endif
                         </select>
                     </div>
+                    <div class="col-auto mt-2"><a href="{{ url('project'.($projectRequestStatus?'?request_status='.$projectRequestStatus:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
 
                     {{-- Filter Status --}}
                     <div class="col-xl-3 mt-2">
@@ -92,6 +100,7 @@
                                     @endif
                                     <th scope="col" data-field="status" data-sortable="false" data-align="center" data-width="5%" data-formatter="yesNoStatusFormatter"> {{ __('Is Project Active ?') }}</th>
                                     <th scope="col" data-field="request_status" data-sortable="false" data-align="center" data-width="5%" data-formatter="requestStatusFormatter"> {{ __('Status') }}</th>
+                                    <th scope="col" data-field="active_state" data-sortable="false" data-align="center" data-visible="false" data-formatter="yesNoStatusFormatter">{{ __('Active') }}</th>
                                     <th scope="col" data-field="video_link" data-sortable="false" data-align="center" data-formatter="videoLinkFormatter"> {{ __('Video Link') }}</th>
                                     <th scope="col" data-field="document_action" data-align="center" data-sortable="false" data-events="actionEvents"> {{ __('Documents/Images') }}</th>
                                     <th scope="col" data-field="action" data-align="center" data-sortable="false" data-events="actionEvents"> {{ __('Action') }}</th>
@@ -209,6 +218,20 @@
             if (params.get('type') != 'null') {
                 $('#type').val(params.get('type'));
             }
+            var compactFields = ['title','owner_name','customer.mobile','category.category','active_state','request_status','action'];
+            var compactApplied = false;
+            function applyCompactProjectColumns() {
+                if (compactApplied) return;
+                var options = $('#table_list').bootstrapTable('getOptions');
+                if (!options.columns || !options.columns[0]) return;
+                compactApplied = true;
+                options.columns[0].forEach(function (column) {
+                    if (column.field && compactFields.indexOf(column.field) === -1) $('#table_list').bootstrapTable('hideColumn', column.field);
+                });
+                compactFields.forEach(function (field) { $('#table_list').bootstrapTable('showColumn', field); });
+            }
+            $('#table_list').one('post-header.bs.table', applyCompactProjectColumns);
+            setTimeout(applyCompactProjectColumns, 0);
         });
 
 
@@ -223,6 +246,7 @@
                 status: $('#status').val(),
                 category: $('#filter_category').val(),
                 owner: $('#project-owner-filter').val(),
+                request_status: "{{ $projectRequestStatus }}",
             };
         }
 

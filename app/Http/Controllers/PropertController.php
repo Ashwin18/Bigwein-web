@@ -46,7 +46,13 @@ class PropertController extends Controller
         } else {
             $customerID = $_GET['customer'] ?? null;
             $category = Category::all();
-            return view('property.index', compact('category','customerID'));
+            $approvalCounts = [
+                'pending' => Property::where('request_status', 'pending')->count(),
+                'approved' => Property::where('request_status', 'approved')->count(),
+                'rejected' => Property::where('request_status', 'rejected')->count(),
+                'total' => Property::count(),
+            ];
+            return view('property.index', compact('category','customerID','approvalCounts'));
         }
     }
     /**
@@ -729,6 +735,7 @@ class PropertController extends Controller
         foreach ($res as $row) {
             $tempRow = $row->toArray();
             $tempRow['property_type_raw'] = $row->getRawOriginal('propery_type');
+            $tempRow['active_state'] = $row->status;
 
             if($row->added_by == 0){
                 if (has_permissions('update', 'property')) {

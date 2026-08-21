@@ -38,7 +38,13 @@ class ProjectController extends Controller
             return redirect()->back()->with('error', trans(PERMISSION_ERROR_MSG));
         }
         $category = Category::all();
-        return view('project.index',compact('category'));
+        $approvalCounts = [
+            'pending' => Projects::where('request_status', 'pending')->count(),
+            'approved' => Projects::where('request_status', 'approved')->count(),
+            'rejected' => Projects::where('request_status', 'rejected')->count(),
+            'total' => Projects::count(),
+        ];
+        return view('project.index',compact('category','approvalCounts'));
     }
 
     public function create(){
@@ -242,6 +248,10 @@ class ProjectController extends Controller
             $sql = $sql->where('category_id', $category_id);
         }
 
+        if (isset($_GET['request_status']) && $_GET['request_status'] !== '') {
+            $sql = $sql->where('request_status', $_GET['request_status']);
+        }
+
         if ($_GET['owner'] != '' && isset($_GET['owner'])) {
             $owner = $_GET['owner'];
             if($owner == 0){
@@ -287,6 +297,7 @@ class ProjectController extends Controller
             }
 
             $tempRow = $row->toArray();
+            $tempRow['active_state'] = $row->status;
             $tempRow['owner_name'] = $row->is_admin_listing == true ? "Admin" : $row->customer->name;
             if($row->is_admin_listing == true && $row->request_status == "approved"){
                 $tempRow['edit_status'] = $row->status;

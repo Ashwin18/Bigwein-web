@@ -23,7 +23,13 @@ $request_status = request("request_status","");
 @endsection
 
 @section('content')
-    <section class="section {{ $request_status ? 'bw-property-approval-mode' : '' }}">
+    <section class="section bw-property-approval-mode">
+        @include('components.admin.summary-cards', ['items' => [
+            ['label'=>'Pending','count'=>$approvalCounts['pending'],'url'=>url('property?request_status=pending'),'active'=>$request_status==='pending','tone'=>'warning','icon'=>'bi-hourglass-split'],
+            ['label'=>'Approved','count'=>$approvalCounts['approved'],'url'=>url('property?request_status=approved'),'active'=>$request_status==='approved','tone'=>'success','icon'=>'bi-check-circle'],
+            ['label'=>'Rejected','count'=>$approvalCounts['rejected'],'url'=>url('property?request_status=rejected'),'active'=>$request_status==='rejected','tone'=>'danger','icon'=>'bi-x-circle'],
+            ['label'=>'Total','count'=>$approvalCounts['total'],'url'=>url('property'),'active'=>$request_status==='','tone'=>'info','icon'=>'bi-collection'],
+        ]])
         <div class="card">
             @if (has_permissions('create', 'property'))
                 <div class="card-header">
@@ -42,7 +48,7 @@ $request_status = request("request_status","");
 
             <hr>
             <div class="card-body">
-                <div class="row" id="toolbar">
+                <div class="row bw-review-filter" id="toolbar">
                     {{-- Filter Category --}}
                     <div class="col-xl-3 mt-2">
                         <select class="form-select form-control-sm" id="filter_category">
@@ -54,6 +60,8 @@ $request_status = request("request_status","");
                             @endif
                         </select>
                     </div>
+
+                    <div class="col-auto mt-2"><a href="{{ url('property'.($request_status?'?request_status='.$request_status:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
                     {{-- Filter Status --}}
                     <div class="col-xl-3 mt-2">
                         <select id="status" class="form-select form-control-sm">
@@ -124,6 +132,7 @@ $request_status = request("request_status","");
                                     <th scope="col" data-field="city" data-align="center" data-sortable="true" data-visible="false">{{ __('City') }}</th>
                                     <th scope="col" data-field="price" data-align="center" data-sortable="true" data-visible="false">{{ __('Price') }}</th>
                                     <th scope="col" data-field="created_at" data-align="center" data-sortable="true" data-visible="false">{{ __('Submitted') }}</th>
+                                    <th scope="col" data-field="active_state" data-align="center" data-sortable="false" data-visible="false" data-formatter="statusFormatter">{{ __('Active') }}</th>
                                     @if (has_permissions('update', 'property'))
                                         <th scope="col" data-field="is_premium" data-formatter="premium_status_switch" data-align="center" data-sortable="false"> {{ __('Private/Public') }}</th>
                                     @endif
@@ -315,9 +324,8 @@ $request_status = request("request_status","");
             };
         }
 
-        @if($request_status)
         $(document).ready(function () {
-            var compactFields = ['added_by','title','category.category','propery_type','request_status','city','price','created_at','operate'];
+            var compactFields = ['title','added_by','category.category','city','price','created_at','active_state','request_status','operate'];
             var compactColumnsApplied = false;
             $('#table_list').on('post-body.bs.table', function () {
                 $('#table_list').closest('.bootstrap-table').addClass('bw-compact-bootstrap-table');
@@ -336,7 +344,6 @@ $request_status = request("request_status","");
             $('#table_list').one('post-header.bs.table', applyCompactColumns);
             setTimeout(applyCompactColumns, 0);
         });
-        @endif
 
         window.actionEvents = {
             'click .edit_btn': function(e, value, row, index) {
