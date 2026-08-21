@@ -121,10 +121,14 @@
             </div>
           </div>
 
-          <span class="bw-status {{ $r->status }}"><i class="bi bi-circle-fill" style="font-size:6px;"></i> {{ $statusLabel }}</span>
+          <div style="display:flex;align-items:flex-end;gap:8px;flex-direction:column;">
+            @include('components.admin.status-badge',['status'=>$r->status,'prefix'=>'KYC '])
+            <span class="bw-review-eligibility {{ $r->status==='approved'?'is-eligible':'is-blocked' }}"><i class="bi {{ $r->status==='approved'?'bi-unlock':'bi-lock' }}"></i> {{ $r->status==='approved'?'Eligible to List':'Listing Blocked' }}</span>
+            <button class="btn btn-sm {{ in_array($r->status,['submitted','under_review'],true)?'btn-danger':'btn-outline-secondary' }}" type="button" data-bs-toggle="collapse" data-bs-target="#kyc-review-{{ $r->id }}" aria-expanded="false" aria-controls="kyc-review-{{ $r->id }}"><i class="bi bi-eye"></i> {{ in_array($r->status,['submitted','under_review'],true)?'Review':'View Details' }}</button>
+          </div>
         </div>
 
-        <div class="bw-kyc-card-body">
+        <div class="bw-kyc-card-body collapse" id="kyc-review-{{ $r->id }}">
           <div>
             <div class="bw-doc-panel">
               <div class="bw-doc">

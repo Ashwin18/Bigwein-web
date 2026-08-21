@@ -7,12 +7,12 @@ class BusinessAdminController extends Controller {
  public function index(Request $r){
   $status=$r->get('status','pending');$q=DB::table('businesses as b')->leftJoin('customers as cu','cu.id','=','b.customer_id')->leftJoin('business_categories as c','c.id','=','b.business_category_id');
   if($status!=='all')$q->where('b.request_status',$status);if($r->filled('search')){$s=$r->search;$q->where(function($x)use($s){$x->where('b.title','like',"%$s%")->orWhere('b.city','like',"%$s%")->orWhere('cu.name','like',"%$s%");});}
-  $rows=$q->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','c.name as category_name')->orderByDesc('b.id')->paginate(15)->withQueryString();
+  $rows=$q->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','cu.kyc_status as owner_kyc_status','c.name as category_name')->orderByDesc('b.id')->paginate(15)->withQueryString();
   $counts=['pending'=>DB::table('businesses')->where('request_status','pending')->count(),'approved'=>DB::table('businesses')->where('request_status','approved')->count(),'changes_requested'=>DB::table('businesses')->where('request_status','changes_requested')->count(),'rejected'=>DB::table('businesses')->where('request_status','rejected')->count(),'draft'=>DB::table('businesses')->where('request_status','draft')->count()];
   return view('business-management.index',compact('rows','counts','status'));
  }
  public function show($id){
-  $business=DB::table('businesses as b')->leftJoin('customers as cu','cu.id','=','b.customer_id')->leftJoin('business_categories as c','c.id','=','b.business_category_id')->where('b.id',$id)->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','cu.email as owner_email','c.name as category_name')->first();if(!$business)abort(404);
+  $business=DB::table('businesses as b')->leftJoin('customers as cu','cu.id','=','b.customer_id')->leftJoin('business_categories as c','c.id','=','b.business_category_id')->where('b.id',$id)->select('b.*','cu.name as owner_name','cu.mobile as owner_mobile','cu.email as owner_email','cu.kyc_status as owner_kyc_status','c.name as category_name')->first();if(!$business)abort(404);
   $images=DB::table('business_images')->where('business_id',$id)->get();$documents=DB::table('business_documents')->where('business_id',$id)->get();
   return view('business-management.show',compact('business','images','documents'));
  }

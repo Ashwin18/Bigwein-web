@@ -28,7 +28,7 @@
 
   <div class="col-lg-4">
     <div class="card p-3" style="position:sticky;top:90px">
-      <h5>Seller</h5><p>{{ $business->owner_name }}<br>{{ $business->owner_mobile }}<br>{{ $business->owner_email }}</p>
+      <h5>Seller</h5><p>{{ $business->owner_name }}<br>{{ $business->owner_mobile }}<br>{{ $business->owner_email }}</p><div class="mb-3">@include('components.admin.status-badge',['status'=>$business->owner_kyc_status,'prefix'=>'KYC '])</div>
       @if($business->admin_remarks)<div class="alert alert-warning py-2"><small><strong>Previous remarks:</strong><br>{{ $business->admin_remarks }}</small></div>@endif
 
       @if($business->request_status==='pending')

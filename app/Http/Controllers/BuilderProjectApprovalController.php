@@ -15,7 +15,7 @@ class BuilderProjectApprovalController extends Controller
             ->leftJoin('builder_profiles as bp','bp.customer_id','=','c.id')
             ->leftJoin('builder_project_details as d','d.project_id','=','p.id')
             ->where('c.owner_type','builder')
-            ->select('p.*','c.name as owner_name','c.mobile','bp.company_name','d.rera_number','d.project_segment','d.admin_remarks');
+            ->select('p.*','c.name as owner_name','c.mobile','c.kyc_status as owner_kyc_status','bp.company_name','d.rera_number','d.project_segment','d.admin_remarks');
 
         if($status!=='all')$q->where('p.request_status',$status);
         if($request->filled('search')){
@@ -41,7 +41,7 @@ class BuilderProjectApprovalController extends Controller
             ->leftJoin('builder_profiles as bp','bp.customer_id','=','c.id')
             ->leftJoin('builder_project_details as d','d.project_id','=','p.id')
             ->where('p.id',$id)->where('c.owner_type','builder')
-            ->select('p.*','c.name as owner_name','c.email as owner_email','c.mobile as owner_mobile','bp.company_name','bp.rera_promoter_number',
+            ->select('p.*','c.name as owner_name','c.email as owner_email','c.mobile as owner_mobile','c.kyc_status as owner_kyc_status','bp.company_name','bp.rera_promoter_number',
                 'd.project_segment','d.project_subtype','d.launch_date','d.possession_date','d.rera_number','d.rera_url','d.rera_certificate',
                 'd.total_land_area','d.land_area_unit','d.total_towers','d.total_blocks','d.total_floors','d.total_units','d.available_units',
                 'd.open_space_percent','d.amenities','d.specifications','d.nearby_places','d.admin_remarks')

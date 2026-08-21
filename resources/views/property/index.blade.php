@@ -23,7 +23,7 @@ $request_status = request("request_status","");
 @endsection
 
 @section('content')
-    <section class="section">
+    <section class="section {{ $request_status ? 'bw-property-approval-mode' : '' }}">
         <div class="card">
             @if (has_permissions('create', 'property'))
                 <div class="card-header">
@@ -121,6 +121,9 @@ $request_status = request("request_status","");
                                     <th scope="col" data-field="interested_users" data-align="center" data-sortable="false" data-events="actionEvents"> {{ __('Total Interested Users') }}</th>
                                     <th scope="col" data-field="status" data-sortable="false" data-align="center" data-width="5%" data-formatter="yesNoStatusFormatter"> {{ __('Is Property Active ?') }}</th>
                                     <th scope="col" data-field="request_status" data-sortable="false" data-align="center" data-width="5%" data-formatter="requestStatusFormatter"> {{ __('Status') }}</th>
+                                    <th scope="col" data-field="city" data-align="center" data-sortable="true" data-visible="false">{{ __('City') }}</th>
+                                    <th scope="col" data-field="price" data-align="center" data-sortable="true" data-visible="false">{{ __('Price') }}</th>
+                                    <th scope="col" data-field="created_at" data-align="center" data-sortable="true" data-visible="false">{{ __('Submitted') }}</th>
                                     @if (has_permissions('update', 'property'))
                                         <th scope="col" data-field="is_premium" data-formatter="premium_status_switch" data-align="center" data-sortable="false"> {{ __('Private/Public') }}</th>
                                     @endif
@@ -307,9 +310,33 @@ $request_status = request("request_status","");
                 property_type: $('#property-type-filter').val(),
                 property_added_by: $('#property-owner-filter').val(),
                 property_accessibility: $('#property-accessibility-filter').val(),
-                customerID: "{{ $customerID }}"
+                customerID: "{{ $customerID }}",
+                request_status: "{{ $request_status }}"
             };
         }
+
+        @if($request_status)
+        $(document).ready(function () {
+            var compactFields = ['added_by','title','category.category','propery_type','request_status','city','price','created_at','operate'];
+            var compactColumnsApplied = false;
+            $('#table_list').on('post-body.bs.table', function () {
+                $('#table_list').closest('.bootstrap-table').addClass('bw-compact-bootstrap-table');
+            });
+            function applyCompactColumns() {
+                if (compactColumnsApplied) return;
+                var options = $('#table_list').bootstrapTable('getOptions');
+                if (!options.columns || !options.columns[0]) return;
+                compactColumnsApplied = true;
+                var allFields = options.columns[0].map(function (column) { return column.field; });
+                allFields.forEach(function (field) {
+                    if (field && compactFields.indexOf(field) === -1) $('#table_list').bootstrapTable('hideColumn', field);
+                });
+                compactFields.forEach(function (field) { $('#table_list').bootstrapTable('showColumn', field); });
+            }
+            $('#table_list').one('post-header.bs.table', applyCompactColumns);
+            setTimeout(applyCompactColumns, 0);
+        });
+        @endif
 
         window.actionEvents = {
             'click .edit_btn': function(e, value, row, index) {
