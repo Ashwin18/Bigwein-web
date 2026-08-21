@@ -61,7 +61,6 @@ $request_status = request("request_status","");
                         </select>
                     </div>
 
-                    <div class="col-auto mt-2"><a href="{{ url('property'.($request_status?'?request_status='.$request_status:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
                     {{-- Filter Status --}}
                     <div class="col-xl-3 mt-2">
                         <select id="status" class="form-select form-control-sm">
@@ -89,14 +88,8 @@ $request_status = request("request_status","");
                         </select>
                     </div>
                     {{-- Filter Private/General --}}
-                    <div class="col-xl-3 mt-2">
-                        <select id="property-accessibility-filter" class="form-select form-control-sm">
-                            <option value="">{{ __('Select Accessibility Type') }} </option>
-                            <option value="0">{{ __('All') }}</option>
-                            <option value="1">{{ __('Private') }}</option>
-                            <option value="2">{{ __('General') }}</option>
-                        </select>
-                    </div>
+                    <details class="bw-more-filters"><summary><i class="bi bi-sliders"></i> More Filters</summary><div class="bw-more-filters__panel"><select id="property-accessibility-filter" class="form-select form-control-sm"><option value="">{{ __('Accessibility') }}</option><option value="0">{{ __('All') }}</option><option value="1">{{ __('Private') }}</option><option value="2">{{ __('General') }}</option></select></div></details>
+                    <div class="col-auto mt-2"><a href="{{ url('property'.($request_status?'?request_status='.$request_status:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
 
                 </div>
 
@@ -111,6 +104,7 @@ $request_status = request("request_status","");
                             data-pagination-successively-size="3" data-query-params="queryParams">
                             <thead class="thead-dark">
                                 <tr>
+                                    <th scope="col" data-field="review_queue" data-formatter="propertyReviewQueueFormatter" data-visible="false">{{ __('Property Review Queue') }}</th>
                                     <th scope="col" data-field="id" data-sortable="true"> {{ __('ID') }}</th>
                                     <th scope="col" data-field="added_by" data-align="center" data-sortable="false"> {{ __('Client Name') }}</th>
                                     <th scope="col" data-field="mobile" data-align="center" data-sortable="false"> {{ __('Mobile') }} </th>
@@ -325,7 +319,7 @@ $request_status = request("request_status","");
         }
 
         $(document).ready(function () {
-            var compactFields = ['title','added_by','category.category','city','price','created_at','active_state','request_status','operate'];
+            var compactFields = ['review_queue'];
             var compactColumnsApplied = false;
             $('#table_list').on('post-body.bs.table', function () {
                 $('#table_list').closest('.bootstrap-table').addClass('bw-compact-bootstrap-table');
@@ -340,10 +334,41 @@ $request_status = request("request_status","");
                     if (field && compactFields.indexOf(field) === -1) $('#table_list').bootstrapTable('hideColumn', field);
                 });
                 compactFields.forEach(function (field) { $('#table_list').bootstrapTable('showColumn', field); });
+                var $search = $('#table_list').closest('.bootstrap-table').find('.fixed-table-toolbar .search');
+                if ($search.length) $search.addClass('bw-review-native-search').prependTo('#toolbar');
             }
             $('#table_list').one('post-header.bs.table', applyCompactColumns);
             setTimeout(applyCompactColumns, 0);
         });
+
+        function bwQueueEscape(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
+            });
+        }
+
+        function bwSecondaryPropertyActions(html) {
+            var holder = document.createElement('div');
+            holder.innerHTML = html || '';
+            holder.querySelectorAll('.quick-approve-btn,.request-status-btn,a[title="Review"]').forEach(function (node) { node.remove(); });
+            return holder.innerHTML;
+        }
+
+        function propertyReviewQueueFormatter(value, row) {
+            var approval = String(row.request_status || 'pending').toLowerCase();
+            var active = Number(row.active_state) === 1;
+            var category = row.category && row.category.category ? row.category.category : 'Uncategorised';
+            var submitted = row.created_at ? new Date(row.created_at).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'}) : '—';
+            var reviewUrl = "{{ url('property-approval') }}/" + encodeURIComponent(row.id) + '/detail';
+            var secondary = bwSecondaryPropertyActions(row.operate);
+            return '<article class="bw-queue-card">' +
+                '<div class="bw-queue-main"><div class="bw-queue-icon"><i class="bi bi-building"></i></div><div class="bw-queue-title"><strong>' + bwQueueEscape(row.title) + '</strong><span>' + bwQueueEscape(row.added_by || 'Owner unavailable') + ' · ' + bwQueueEscape(category) + '</span></div></div>' +
+                '<div class="bw-queue-meta"><small>Location</small><strong>' + bwQueueEscape(row.city || '—') + '</strong></div>' +
+                '<div class="bw-queue-meta"><small>Price</small><strong>' + bwQueueEscape(row.price || '—') + '</strong></div>' +
+                '<div class="bw-queue-meta"><small>Submitted</small><strong>' + bwQueueEscape(submitted) + '</strong></div>' +
+                '<div class="bw-queue-statuses"><span class="bw-review-status bw-review-status--' + bwQueueEscape(approval) + '"><span class="bw-review-status__dot"></span>' + bwQueueEscape(approval.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();})) + '</span><span class="bw-review-status bw-review-status--' + (active?'active':'inactive') + '"><span class="bw-review-status__dot"></span>' + (active?'Active':'Inactive') + '</span></div>' +
+                '<div class="bw-queue-actions"><a class="btn btn-sm btn-outline-danger" href="' + reviewUrl + '"><i class="bi bi-eye"></i> ' + (approval==='pending'?'Review':'View') + '</a>' + (secondary?'<div class="bw-queue-secondary-actions">'+secondary+'</div>':'') + '</div></article>';
+        }
 
         window.actionEvents = {
             'click .edit_btn': function(e, value, row, index) {

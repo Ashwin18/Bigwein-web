@@ -56,7 +56,6 @@
                             @endif
                         </select>
                     </div>
-                    <div class="col-auto mt-2"><a href="{{ url('project'.($projectRequestStatus?'?request_status='.$projectRequestStatus:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
 
                     {{-- Filter Status --}}
                     <div class="col-xl-3 mt-2">
@@ -75,6 +74,7 @@
                             <option value="1">{{ __('By Users') }}</option>
                         </select>
                     </div>
+                    <div class="col-auto mt-2"><a href="{{ url('project'.($projectRequestStatus?'?request_status='.$projectRequestStatus:'')) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a></div>
                 </div>
 
                 <div class="row">
@@ -88,6 +88,7 @@
                             data-pagination-successively-size="3" data-query-params="queryParams">
                             <thead class="thead-dark">
                                 <tr>
+                                    <th scope="col" data-field="review_queue" data-formatter="projectReviewQueueFormatter" data-events="actionEvents" data-visible="false">{{ __('Project Review Queue') }}</th>
                                     <th scope="col" data-field="id" data-sortable="true"> {{ __('ID') }}</th>
                                     <th scope="col" data-field="owner_name" data-align="center" data-sortable="false"> {{ __('Client Name') }}</th>
                                     <th scope="col" data-field="customer.mobile" data-align="center" data-sortable="false"> {{ __('Mobile') }} </th>
@@ -218,7 +219,7 @@
             if (params.get('type') != 'null') {
                 $('#type').val(params.get('type'));
             }
-            var compactFields = ['title','owner_name','customer.mobile','category.category','active_state','request_status','action'];
+            var compactFields = ['review_queue'];
             var compactApplied = false;
             function applyCompactProjectColumns() {
                 if (compactApplied) return;
@@ -229,10 +230,29 @@
                     if (column.field && compactFields.indexOf(column.field) === -1) $('#table_list').bootstrapTable('hideColumn', column.field);
                 });
                 compactFields.forEach(function (field) { $('#table_list').bootstrapTable('showColumn', field); });
+                var $search = $('#table_list').closest('.bootstrap-table').find('.fixed-table-toolbar .search');
+                if ($search.length) $search.addClass('bw-review-native-search').prependTo('#toolbar');
             }
             $('#table_list').one('post-header.bs.table', applyCompactProjectColumns);
             setTimeout(applyCompactProjectColumns, 0);
         });
+
+        function projectQueueEscape(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]; });
+        }
+        function projectReviewQueueFormatter(value, row) {
+            var approval = String(row.request_status || 'pending').toLowerCase();
+            var active = Number(row.active_state) === 1;
+            var category = row.category && row.category.category ? row.category.category : 'Uncategorised';
+            var contact = row.customer && row.customer.mobile ? row.customer.mobile : 'No contact';
+            var holder = document.createElement('div'); holder.innerHTML = row.action || '';
+            holder.querySelectorAll('.request-status-btn').forEach(function(node){ node.remove(); });
+            var secondary = holder.innerHTML;
+            var primary = approval === 'pending' && !row.is_admin_listing
+                ? '<button type="button" class="btn btn-sm btn-outline-danger request-status-btn" id="'+projectQueueEscape(row.id)+'" data-bs-target="#changeRequestStatusModal" data-bs-toggle="modal"><i class="bi bi-eye"></i> Review</button>'
+                : '<button type="button" class="btn btn-sm btn-outline-secondary documents-btn" id="'+projectQueueEscape(row.id)+'" data-bs-target="#documentsModal" data-bs-toggle="modal"><i class="bi bi-eye"></i> View</button>';
+            return '<article class="bw-queue-card bw-queue-card--project"><div class="bw-queue-main"><div class="bw-queue-icon"><i class="bi bi-buildings"></i></div><div class="bw-queue-title"><strong>'+projectQueueEscape(row.title)+'</strong><span>'+projectQueueEscape(row.owner_name || 'Owner unavailable')+'</span></div></div><div class="bw-queue-meta"><small>Category</small><strong>'+projectQueueEscape(category)+'</strong></div><div class="bw-queue-meta"><small>Contact</small><strong>'+projectQueueEscape(contact)+'</strong></div><div class="bw-queue-statuses"><span class="bw-review-status bw-review-status--'+projectQueueEscape(approval)+'"><span class="bw-review-status__dot"></span>'+projectQueueEscape(approval.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}))+'</span><span class="bw-review-status bw-review-status--'+(active?'active':'inactive')+'"><span class="bw-review-status__dot"></span>'+(active?'Active':'Inactive')+'</span></div><div class="bw-queue-actions">'+primary+(secondary?'<div class="bw-queue-secondary-actions">'+secondary+'</div>':'')+'</div></article>';
+        }
 
 
         function queryParams(p) {
