@@ -44,6 +44,7 @@ class Kernel extends HttpKernel
         'auth' => \App\Http\Middleware\Authenticate::class,
         'bw.auth' => \App\Http\Middleware\FrontendAuthMiddleware::class,
         'owner.auth' => \App\Http\Middleware\OwnerAuthMiddleware::class,
+        'owner.kyc.approved' => \App\Http\Middleware\EnsureOwnerKycApproved::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,

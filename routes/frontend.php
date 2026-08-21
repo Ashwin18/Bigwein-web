@@ -64,16 +64,18 @@ Route::prefix('owner')->middleware('owner.auth')->group(function () {
     // My Properties
     Route::get('/my-properties',   [OwnerDashboardController::class, 'myProperties'])->name('owner.properties');
 
-    // Post / Edit Property
-    Route::get('/post-property',            [OwnerPropertyController::class, 'create'])->name('owner.property.create');
-    Route::post('/post-property',           [OwnerPropertyController::class, 'store'])->name('owner.property.store');
-    Route::get('/property/{id}/edit',       [OwnerPropertyController::class, 'edit'])->name('owner.property.edit');
-    Route::post('/property/{id}/update',    [OwnerPropertyController::class, 'update'])->name('owner.property.update');
-    Route::delete('/property/{id}',         [OwnerPropertyController::class, 'destroy'])->name('owner.property.destroy');
+    // Property listing access and every listing mutation require approved KYC.
+    Route::middleware('owner.kyc.approved')->group(function () {
+        Route::get('/post-property',          [OwnerPropertyController::class, 'create'])->name('owner.property.create');
+        Route::post('/post-property',         [OwnerPropertyController::class, 'store'])->name('owner.property.store');
+        Route::get('/property/{id}/edit',     [OwnerPropertyController::class, 'edit'])->name('owner.property.edit');
+        Route::post('/property/{id}/update',  [OwnerPropertyController::class, 'update'])->name('owner.property.update');
+        Route::delete('/property/{id}',       [OwnerPropertyController::class, 'destroy'])->name('owner.property.destroy');
 
-    // Gallery AJAX
-    Route::post('/property/{id}/gallery',   [OwnerPropertyController::class, 'uploadGallery']);
-    Route::delete('/gallery/{imageId}',     [OwnerPropertyController::class, 'deleteGallery']);
+        // Gallery AJAX
+        Route::post('/property/{id}/gallery', [OwnerPropertyController::class, 'uploadGallery']);
+        Route::delete('/gallery/{imageId}',   [OwnerPropertyController::class, 'deleteGallery']);
+    });
 
     // Subscription
     Route::get('/subscription',                         [OwnerSubscriptionController::class, 'index'])->name('owner.subscription');
